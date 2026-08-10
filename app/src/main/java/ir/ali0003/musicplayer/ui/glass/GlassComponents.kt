@@ -399,6 +399,7 @@ fun GlassArtworkCard(
     isPlaying: Boolean = false,
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
+    trackId: Long = 0L,
     theme: GlassTheme = GlassTheme.DarkGreen,
     shape: Shape = RoundedCornerShape(14.dp),
     titleText: String = "",
@@ -408,7 +409,7 @@ fun GlassArtworkCard(
 ) {
     var isImageError by remember(imageUrl) { mutableStateOf(false) }
     val hasImage = !imageUrl.isNullOrEmpty() && !isImageError
-    val showFallback = !hasImage || isScrolling
+    val showFallback = !hasImage
 
     val solidMatteColor = remember(theme) {
         theme.glassFill.copy(alpha = 1f)
@@ -438,13 +439,16 @@ fun GlassArtworkCard(
     ) {
         if (!showFallback) {
             val context = LocalContext.current
-            val imageRequest = remember(imageUrl, targetSize) {
+            val cacheKey = remember(imageUrl, trackId) {
+                if (trackId > 0) "cover_$trackId" else (imageUrl ?: "")
+            }
+            val imageRequest = remember(imageUrl, targetSize, cacheKey) {
                 val builder = ImageRequest.Builder(context)
                     .data(imageUrl)
-                    .memoryCacheKey(if (targetSize > 0) "${imageUrl}_$targetSize" else imageUrl)
-                    .diskCacheKey(imageUrl)
+                    .memoryCacheKey(cacheKey)
+                    .diskCacheKey(cacheKey)
                     .allowHardware(true)
-                    .crossfade(150)
+                    .crossfade(false)
                     .memoryCachePolicy(CachePolicy.ENABLED)
                     .diskCachePolicy(CachePolicy.ENABLED)
 
@@ -539,7 +543,7 @@ fun GlassSlider(
 @Composable
 fun rememberFastScrollState(
     isScrollInProgress: Boolean,
-    velocityThresholdPxPerSec: Float = 5000f
+    velocityThresholdPxPerSec: Float = 12000f
 ): Pair<NestedScrollConnection, Boolean> {
     var isFastScrolling by remember { mutableStateOf(false) }
 

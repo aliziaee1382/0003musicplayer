@@ -132,7 +132,7 @@ fun HomeScreen(
     val listState = rememberLazyListState()
     val (nestedScrollConn, isFastScrolling) = rememberFastScrollState(
         isScrollInProgress = listState.isScrollInProgress,
-        velocityThresholdPxPerSec = 1200f
+        velocityThresholdPxPerSec = 12000f
     )
 
     LazyColumn(

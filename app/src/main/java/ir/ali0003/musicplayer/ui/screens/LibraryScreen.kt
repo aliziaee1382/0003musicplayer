@@ -368,7 +368,7 @@ private fun SongsTabContent(
     val listState = rememberLazyListState()
     val (nestedScrollConn, isFastScrolling) = rememberFastScrollState(
         isScrollInProgress = listState.isScrollInProgress,
-        velocityThresholdPxPerSec = 1200f
+        velocityThresholdPxPerSec = 12000f
     )
 
     LazyColumn(
@@ -429,7 +429,7 @@ private fun AlbumsTabContent(
     val gridState = rememberLazyGridState()
     val (gridNestedScrollConn, isGridFastScrolling) = rememberFastScrollState(
         isScrollInProgress = gridState.isScrollInProgress,
-        velocityThresholdPxPerSec = 1200f
+        velocityThresholdPxPerSec = 12000f
     )
 
     LazyVerticalGrid(

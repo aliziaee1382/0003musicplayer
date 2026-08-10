@@ -89,6 +89,7 @@ fun TrackListItem(
                     gradientIndex = track.coverGradientIndex,
                     isPlaying = isCurrent && isPlaying,
                     imageUrl = track.albumArtUri,
+                    trackId = track.id,
                     theme = theme,
                     targetSize = 128,
                     isScrolling = isScrolling,
