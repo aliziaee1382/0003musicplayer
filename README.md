@@ -1,22 +1,42 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# 🎵 0003 Player - Modern Glassmorphic Audio Player
 
-# Run and deploy your AI Studio app
+A premium, highly-optimized Android audio player featuring a frosted glass aesthetic, custom color themes, 5-band equalizer, sleep timer, dynamic stats, and fast local media scanning.
 
-This contains everything you need to run your app locally.
+## ✨ Key Features
 
-View your app in AI Studio: https://ai.studio/apps/fbc91777-9c28-4fcf-b671-37dfaa1ddee7
+* **Glassmorphic Aesthetic:** Beautiful frosted glass UI built with 100% Jetpack Compose.
+* **High Performance Playback:** Powered by **Media3 ExoPlayer** for seamless, gapless playback and FLAC support.
+* **Fast Storage Scanner:** Optimized MediaStore scanner capable of indexing thousands of local audio files in seconds.
+* **5-Band Equalizer & Presets:** Integrated sound customization with hardware-level equalizer support.
+* **Smart Listening Stats:** Tracks real playback time, top artists, and top songs based on listening habits.
+* **Sleep Timer:** Quick presets and custom timer options to auto-pause audio.
+* **Home Widgets:** Includes 4 different responsive glassmorphism desktop widgets (Compact, Standard, Vinyl, Full Center).
+* **Android 11+ Media Management:** Standard native file deletion permissions.
 
-## Run Locally
+## 🛠️ Tech Stack & Architecture
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+* **UI:** Jetpack Compose, Material 3
+* **Audio Engine:** `androidx.media3:media3-exoplayer`
+* **Local Database:** Room Database
+* **Image Loading:** Coil (Memory & Disk cached)
+* **Architecture:** MVVM + Clean Architecture principles
+* **Target Package:** `ir.ali0003.musicplayer`
 
+## 🚀 How to Build & Run Locally
 
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
-7. If you have already published your app in AI Studio, please [request upload key reset](https://support.google.com/googleplay/android-developer/answer/9842756#zippy=%2Crequest-an-upload-key-reset) in Google Play Console.
+### Prerequisites
+* [Android Studio Jellyfish / Ladybug or newer](https://developer.android.com/studio)
+* Android SDK 36 (Min SDK 24)
+* JDK 11
+
+### Steps
+
+1. Clone or download this repository.
+2. Open Android Studio and select **Open** -> choose the project directory.
+3. Sync project with Gradle files.
+4. Place your release keystore file `my-upload-key.jks` in the root directory if building a signed release APK.
+5. Connect a physical Android device or start an emulator.
+6. Click **Run** (`Shift + F10`) to build and launch the app.
+
+---
+*Created & Maintained by Ali Ziaee*
