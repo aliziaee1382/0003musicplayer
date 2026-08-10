@@ -98,17 +98,11 @@ fun ExploreScreen(
             listState.animateScrollToItem(0)
         }
     }
-    val (nestedScrollConn, isFastScrolling) = rememberFastScrollState(
-        isScrollInProgress = listState.isScrollInProgress,
-        highThresholdPxPerSec = 8000f,
-        lowThresholdPxPerSec = 3000f
-    )
 
     LazyColumn(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(nestedScrollConn)
             .testTag("explore_screen_column"),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -300,7 +294,6 @@ fun ExploreScreen(
                             theme = theme,
                             rankText = "#${index + 1}",
                             showDivider = false,
-                            isScrolling = isFastScrolling,
                             onClick = { onPlayTrack(track, topSongs) },
                             onToggleFavorite = if (onToggleFavorite != null) { { onToggleFavorite(track) } } else null,
                             onOpenAddToPlaylist = if (onOpenAddToPlaylist != null) { { onOpenAddToPlaylist(track) } } else null,

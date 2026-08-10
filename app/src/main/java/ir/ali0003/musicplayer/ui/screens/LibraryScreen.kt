@@ -387,15 +387,10 @@ private fun SongsTabContent(
             listState.animateScrollToItem(0)
         }
     }
-    val (nestedScrollConn, isFastScrolling) = rememberFastScrollState(
-        isScrollInProgress = listState.isScrollInProgress,
-        highThresholdPxPerSec = 8000f,
-        lowThresholdPxPerSec = 3000f
-    )
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConn),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 180.dp)
     ) {
         itemsIndexed(
@@ -429,7 +424,6 @@ private fun SongsTabContent(
                 itemShape = itemShape,
                 isLastInGroup = isLast,
                 showDivider = !isLast,
-                isScrolling = isFastScrolling,
                 onClick = onItemClick,
                 onToggleFavorite = onFavoriteClick,
                 onOpenAddToPlaylist = onAddToPlaylistClick,
@@ -455,16 +449,11 @@ private fun AlbumsTabContent(
             gridState.animateScrollToItem(0)
         }
     }
-    val (gridNestedScrollConn, isGridFastScrolling) = rememberFastScrollState(
-        isScrollInProgress = gridState.isScrollInProgress,
-        highThresholdPxPerSec = 5000f,
-        lowThresholdPxPerSec = 1000f
-    )
 
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Fixed(2),
-        modifier = Modifier.fillMaxSize().nestedScroll(gridNestedScrollConn),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -488,7 +477,6 @@ private fun AlbumsTabContent(
                         isPlaying = false,
                         imageUrl = sampleTrack?.albumArtUri,
                         theme = theme,
-                        isScrolling = isGridFastScrolling,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(10.dp))

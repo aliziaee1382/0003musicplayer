@@ -459,8 +459,7 @@ fun GlassArtworkCard(
     shape: Shape = RoundedCornerShape(14.dp),
     titleText: String = "",
     subtitleText: String = "",
-    targetSize: Int = 128,
-    isScrolling: Boolean = false
+    targetSize: Int = 128
 ) {
     var isImageError by remember(imageUrl) { mutableStateOf(false) }
     val hasImage = !imageUrl.isNullOrEmpty() && !isImageError
@@ -593,49 +592,4 @@ fun GlassSlider(
         ),
         modifier = modifier.then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
     )
-}
-
-@Composable
-fun rememberFastScrollState(
-    isScrollInProgress: Boolean,
-    highThresholdPxPerSec: Float = 8000f,
-    lowThresholdPxPerSec: Float = 3000f
-): Pair<NestedScrollConnection, Boolean> {
-    var isFastScrolling by remember { mutableStateOf(false) }
-
-    LaunchedEffect(isScrollInProgress) {
-        if (!isScrollInProgress) {
-            isFastScrolling = false
-        }
-    }
-
-    val connection = remember(highThresholdPxPerSec, lowThresholdPxPerSec) {
-        object : NestedScrollConnection {
-            private var lastTimeNanos: Long = 0L
-
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val now = System.nanoTime()
-                if (lastTimeNanos != 0L) {
-                    val dtSeconds = (now - lastTimeNanos) / 1_000_000_000f
-                    if (dtSeconds in 0.001f..0.1f) {
-                        val dy = kotlin.math.abs(available.y)
-                        val speed = dy / dtSeconds
-                        if (speed > highThresholdPxPerSec) {
-                            isFastScrolling = true
-                        } else if (speed < lowThresholdPxPerSec) {
-                            isFastScrolling = false
-                        }
-                    }
-                }
-                lastTimeNanos = now
-                return Offset.Zero
-            }
-
-            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                isFastScrolling = false
-                return super.onPostFling(consumed, available)
-            }
-        }
-    }
-    return connection to (isScrollInProgress && isFastScrolling)
 }

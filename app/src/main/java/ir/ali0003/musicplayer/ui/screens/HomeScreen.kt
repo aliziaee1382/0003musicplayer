@@ -136,17 +136,11 @@ fun HomeScreen(
             listState.animateScrollToItem(0)
         }
     }
-    val (nestedScrollConn, isFastScrolling) = rememberFastScrollState(
-        isScrollInProgress = listState.isScrollInProgress,
-        highThresholdPxPerSec = 8000f,
-        lowThresholdPxPerSec = 3000f
-    )
 
     LazyColumn(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(nestedScrollConn)
             .testTag("home_screen_column"),
         contentPadding = PaddingValues(bottom = 180.dp)
     ) {
@@ -427,7 +421,6 @@ fun HomeScreen(
                         itemShape = itemShape,
                         isLastInGroup = isLast,
                         showDivider = !isLast,
-                        isScrolling = isFastScrolling,
                         onClick = onItemClick,
                         onToggleFavorite = onFavoriteClick,
                         onOpenAddToPlaylist = onAddToPlaylistClick,

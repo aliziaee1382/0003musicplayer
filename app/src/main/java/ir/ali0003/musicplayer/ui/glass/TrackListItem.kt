@@ -39,7 +39,6 @@ fun TrackListItem(
     itemShape: Shape = RoundedCornerShape(12.dp),
     isLastInGroup: Boolean = false,
     showDivider: Boolean = true,
-    isScrolling: Boolean = false,
     onClick: () -> Unit,
     onToggleFavorite: (() -> Unit)? = null,
     onOpenAddToPlaylist: (() -> Unit)? = null,
@@ -92,7 +91,6 @@ fun TrackListItem(
                     trackId = track.id,
                     theme = theme,
                     targetSize = 128,
-                    isScrolling = isScrolling,
                     modifier = Modifier.size(coverSizeDp)
                 )
 
