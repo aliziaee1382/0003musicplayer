@@ -284,6 +284,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var scanJob: Job? = null
 
     fun scanAndLoadLocalAudio(forceRescanAll: Boolean = false) {
+        if (scanJob?.isActive == true && _isScanning.value) {
+            return
+        }
         scanJob?.cancel()
         scanJob = viewModelScope.launch(Dispatchers.IO) {
             _isScanning.value = true
@@ -301,6 +304,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             repository.insertLocalTracks(batch.tracks)
                         }
                     }
+            } catch (e: Exception) {
+                e.printStackTrace()
             } finally {
                 _isScanning.value = false
             }
