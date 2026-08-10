@@ -251,6 +251,7 @@ fun GlassAudioApp(
     val selectedPlaylist by viewModel.selectedPlaylist.collectAsStateWithLifecycle()
     val selectedPlaylistTracks by viewModel.selectedPlaylistTracks.collectAsStateWithLifecycle()
     val isNowPlayingExpanded by viewModel.isNowPlayingExpanded.collectAsStateWithLifecycle()
+    val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     var selectedPlaylistInitialEditMode by remember { mutableStateOf(false) }
     var showHiddenTracksDialog by remember { mutableStateOf(false) }
 
@@ -573,6 +574,10 @@ fun GlassAudioApp(
                     onDismiss = { showHiddenTracksDialog = false },
                     theme = currentTheme
                 )
+            }
+
+            if (isScanning) {
+                ScanningMusicDialog(theme = currentTheme)
             }
         }
     }

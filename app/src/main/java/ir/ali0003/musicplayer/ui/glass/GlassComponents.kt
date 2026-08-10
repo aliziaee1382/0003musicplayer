@@ -539,7 +539,7 @@ fun GlassSlider(
 @Composable
 fun rememberFastScrollState(
     isScrollInProgress: Boolean,
-    velocityThresholdPxPerSec: Float = 1200f
+    velocityThresholdPxPerSec: Float = 5000f
 ): Pair<NestedScrollConnection, Boolean> {
     var isFastScrolling by remember { mutableStateOf(false) }
 

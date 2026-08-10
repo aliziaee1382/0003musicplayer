@@ -44,6 +44,12 @@ import ir.ali0003.musicplayer.model.Playlist
 import ir.ali0003.musicplayer.model.Track
 import ir.ali0003.musicplayer.model.TrackSortCriterion
 import ir.ali0003.musicplayer.model.TrackSortOrder
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import ir.ali0003.musicplayer.R
 
 @Composable
 fun AnimatedGlassDialog(
@@ -1992,6 +1998,69 @@ fun HiddenTracksDialog(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ScanningMusicDialog(
+    theme: GlassTheme
+) {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = LottieConstants.IterateForever
+    )
+
+    AnimatedGlassDialog(onDismissRequest = {}) {
+        GlassBox(
+            theme = theme,
+            modifier = Modifier
+                .fillMaxWidth(0.88f)
+                .padding(16.dp)
+                .testTag("scanning_music_dialog")
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (composition != null) {
+                    LottieAnimation(
+                        composition = composition,
+                        progress = { progress },
+                        modifier = Modifier.size(140.dp)
+                    )
+                } else {
+                    CircularProgressIndicator(
+                        color = theme.accentColor,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .padding(vertical = 16.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Gathering Your Music...",
+                    color = theme.textColor,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "Please wait while we scan and organize your local audio tracks.",
+                    color = theme.subtextColor,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 18.sp
+                )
             }
         }
     }

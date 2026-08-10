@@ -60,6 +60,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isNowPlayingExpanded = MutableStateFlow(false)
     val isNowPlayingExpanded: StateFlow<Boolean> = _isNowPlayingExpanded.asStateFlow()
 
+    private val _isScanning = MutableStateFlow(false)
+    val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
     // IntentSender for Android 11+ MediaStore Delete Permission
     private val _deleteIntentSender = MutableSharedFlow<IntentSenderRequest>()
     val deleteIntentSender: SharedFlow<IntentSenderRequest> = _deleteIntentSender.asSharedFlow()
@@ -279,14 +282,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun scanAndLoadLocalAudio(forceRescanAll: Boolean = false) {
         scanJob?.cancel()
         scanJob = viewModelScope.launch(Dispatchers.IO) {
-            val existingIds = if (forceRescanAll) emptySet() else repository.getExistingTrackIds()
-            localAudioScanner.scanLocalTracksFlow(existingTrackIds = existingIds, chunkSize = 100)
-                .catch { e -> e.printStackTrace() }
-                .collect { chunk ->
-                    if (chunk.isNotEmpty()) {
-                        repository.insertLocalTracks(chunk)
+            _isScanning.value = true
+            try {
+                val existingIds = if (forceRescanAll) emptySet() else repository.getExistingTrackIds()
+                localAudioScanner.scanLocalTracksFlow(existingTrackIds = existingIds, chunkSize = 100)
+                    .catch { e -> e.printStackTrace() }
+                    .onCompletion {
+                        _isScanning.value = false
                     }
-                }
+                    .collect { chunk ->
+                        if (chunk.isNotEmpty()) {
+                            repository.insertLocalTracks(chunk)
+                        }
+                    }
+            } finally {
+                _isScanning.value = false
+            }
         }
     }
 

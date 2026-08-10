@@ -15,8 +15,8 @@ android {
         applicationId = "ir.ali0003.musicplayer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.3"
+        versionCode = 1
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -88,6 +88,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.coil.compose)
+    implementation(libs.lottie.compose)
     implementation(libs.converter.moshi)
     implementation(libs.firebase.ai)
     implementation(libs.firebase.appcheck.recaptcha)
