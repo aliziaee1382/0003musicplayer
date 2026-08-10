@@ -14,12 +14,22 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
 
+data class ScanProgress(
+    val current: Int,
+    val total: Int
+)
+
+data class ScanBatch(
+    val progress: ScanProgress,
+    val tracks: List<Track>
+)
+
 class LocalAudioScanner(private val context: Context) {
 
     fun scanLocalTracksFlow(
         existingTrackIds: Set<Long> = emptySet(),
         chunkSize: Int = 100
-    ): Flow<List<Track>> = flow {
+    ): Flow<ScanBatch> = flow {
         val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
         } else {
@@ -41,6 +51,7 @@ class LocalAudioScanner(private val context: Context) {
         val selection: String? = null
         val chunkBuffer = mutableListOf<Track>()
         var index = 0
+        var currentScanned = 0
 
         try {
             context.contentResolver.query(
@@ -50,6 +61,9 @@ class LocalAudioScanner(private val context: Context) {
                 null,
                 "${MediaStore.Audio.Media.TITLE} ASC"
             )?.use { cursor ->
+                val totalCount = cursor.count
+                emit(ScanBatch(ScanProgress(0, totalCount), emptyList()))
+
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
                 val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
                 val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
@@ -61,12 +75,16 @@ class LocalAudioScanner(private val context: Context) {
                 val dateModifiedColumn = cursor.getColumnIndex(MediaStore.Audio.Media.DATE_MODIFIED)
 
                 while (cursor.moveToNext()) {
+                    currentScanned++
                     val id = cursor.getLong(idColumn)
                     val trackId = id + 500000L
 
                     // Skip tracks that are already saved in local database for fast incremental scanning
                     if (existingTrackIds.contains(trackId)) {
                         index++
+                        if (currentScanned % 50 == 0 || currentScanned == totalCount) {
+                            emit(ScanBatch(ScanProgress(currentScanned, totalCount), emptyList()))
+                        }
                         continue
                     }
 
@@ -80,11 +98,17 @@ class LocalAudioScanner(private val context: Context) {
                     } else ""
 
                     if (extension.isNotEmpty() && extension !in VALID_MUSIC_EXTENSIONS) {
+                        if (currentScanned % 50 == 0 || currentScanned == totalCount) {
+                            emit(ScanBatch(ScanProgress(currentScanned, totalCount), emptyList()))
+                        }
                         continue
                     }
 
                     // Skip system or hidden paths
                     if (isSystemOrHiddenPath(filePath)) {
+                        if (currentScanned % 50 == 0 || currentScanned == totalCount) {
+                            emit(ScanBatch(ScanProgress(currentScanned, totalCount), emptyList()))
+                        }
                         continue
                     }
 
@@ -148,9 +172,14 @@ class LocalAudioScanner(private val context: Context) {
                     index++
 
                     if (chunkBuffer.size >= chunkSize) {
-                        emit(chunkBuffer.toList())
+                        emit(ScanBatch(ScanProgress(currentScanned, totalCount), chunkBuffer.toList()))
                         chunkBuffer.clear()
                     }
+                }
+
+                if (chunkBuffer.isNotEmpty() || currentScanned < totalCount) {
+                    emit(ScanBatch(ScanProgress(currentScanned, totalCount), chunkBuffer.toList()))
+                    chunkBuffer.clear()
                 }
             }
         } catch (e: Exception) {
@@ -158,15 +187,15 @@ class LocalAudioScanner(private val context: Context) {
         }
 
         if (chunkBuffer.isNotEmpty()) {
-            emit(chunkBuffer.toList())
+            emit(ScanBatch(ScanProgress(currentScanned, currentScanned), chunkBuffer.toList()))
             chunkBuffer.clear()
         }
     }.flowOn(Dispatchers.IO)
 
     suspend fun scanLocalTracks(): List<Track> = withContext(Dispatchers.IO) {
         val result = mutableListOf<Track>()
-        scanLocalTracksFlow(chunkSize = 100).collect { chunk ->
-            result.addAll(chunk)
+        scanLocalTracksFlow(chunkSize = 100).collect { batch ->
+            result.addAll(batch.tracks)
         }
         result
     }

@@ -38,6 +38,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import ir.ali0003.musicplayer.data.local.ScanProgress
 import ir.ali0003.musicplayer.model.EqualizerPreset
 import ir.ali0003.musicplayer.model.GlassTheme
 import ir.ali0003.musicplayer.model.Playlist
@@ -2005,7 +2006,8 @@ fun HiddenTracksDialog(
 
 @Composable
 fun ScanningMusicDialog(
-    theme: GlassTheme
+    theme: GlassTheme,
+    scanProgress: ScanProgress? = null
 ) {
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
     val progress by animateLottieCompositionAsState(
@@ -2061,6 +2063,17 @@ fun ScanningMusicDialog(
                     textAlign = TextAlign.Center,
                     lineHeight = 18.sp
                 )
+
+                if (scanProgress != null && scanProgress.total > 0) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Scanned ${scanProgress.current} of ${scanProgress.total} tracks...",
+                        color = theme.accentColor,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }

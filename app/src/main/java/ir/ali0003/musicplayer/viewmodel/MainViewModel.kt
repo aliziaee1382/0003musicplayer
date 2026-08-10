@@ -10,6 +10,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import ir.ali0003.musicplayer.data.local.AppDatabase
 import ir.ali0003.musicplayer.data.local.MusicRepository
+import ir.ali0003.musicplayer.data.local.ScanProgress
 import ir.ali0003.musicplayer.data.local.UserPreferencesEntity
 import ir.ali0003.musicplayer.model.*
 import ir.ali0003.musicplayer.player.AudioPlayerManager
@@ -62,6 +63,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
+    private val _scanProgress = MutableStateFlow<ScanProgress?>(null)
+    val scanProgress: StateFlow<ScanProgress?> = _scanProgress.asStateFlow()
 
     // IntentSender for Android 11+ MediaStore Delete Permission
     private val _deleteIntentSender = MutableSharedFlow<IntentSenderRequest>()
@@ -283,6 +287,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         scanJob?.cancel()
         scanJob = viewModelScope.launch(Dispatchers.IO) {
             _isScanning.value = true
+            _scanProgress.value = null
             try {
                 val existingIds = if (forceRescanAll) emptySet() else repository.getExistingTrackIds()
                 localAudioScanner.scanLocalTracksFlow(existingTrackIds = existingIds, chunkSize = 100)
@@ -290,9 +295,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     .onCompletion {
                         _isScanning.value = false
                     }
-                    .collect { chunk ->
-                        if (chunk.isNotEmpty()) {
-                            repository.insertLocalTracks(chunk)
+                    .collect { batch ->
+                        _scanProgress.value = batch.progress
+                        if (batch.tracks.isNotEmpty()) {
+                            repository.insertLocalTracks(batch.tracks)
                         }
                     }
             } finally {

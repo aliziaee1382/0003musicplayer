@@ -577,7 +577,11 @@ fun GlassAudioApp(
             }
 
             if (isScanning) {
-                ScanningMusicDialog(theme = currentTheme)
+                val scanProgress by viewModel.scanProgress.collectAsStateWithLifecycle()
+                ScanningMusicDialog(
+                    theme = currentTheme,
+                    scanProgress = scanProgress
+                )
             }
         }
     }
