@@ -7,7 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,10 +30,7 @@ import androidx.compose.ui.unit.sp
 import ir.ali0003.musicplayer.model.GlassTheme
 import ir.ali0003.musicplayer.model.ListItemSize
 import ir.ali0003.musicplayer.model.Track
-import ir.ali0003.musicplayer.ui.glass.GlassArtworkCard
-import ir.ali0003.musicplayer.ui.glass.GlassCard
-import ir.ali0003.musicplayer.ui.glass.GlassIconButton
-import ir.ali0003.musicplayer.ui.glass.TrackListItem
+import ir.ali0003.musicplayer.ui.glass.*
 
 @Composable
 fun ExploreScreen(
@@ -92,9 +90,17 @@ fun ExploreScreen(
         ).take(10)
     }
 
+    val listState = rememberLazyListState()
+    val (nestedScrollConn, isFastScrolling) = rememberFastScrollState(
+        isScrollInProgress = listState.isScrollInProgress,
+        velocityThresholdPxPerSec = 1200f
+    )
+
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
+            .nestedScroll(nestedScrollConn)
             .testTag("explore_screen_column"),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -286,6 +292,7 @@ fun ExploreScreen(
                             theme = theme,
                             rankText = "#${index + 1}",
                             showDivider = false,
+                            isScrolling = isFastScrolling,
                             onClick = { onPlayTrack(track, topSongs) },
                             onToggleFavorite = if (onToggleFavorite != null) { { onToggleFavorite(track) } } else null,
                             onOpenAddToPlaylist = if (onOpenAddToPlaylist != null) { { onOpenAddToPlaylist(track) } } else null,

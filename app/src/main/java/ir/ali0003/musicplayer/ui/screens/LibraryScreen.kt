@@ -37,6 +37,7 @@ import ir.ali0003.musicplayer.model.ListItemSize
 import ir.ali0003.musicplayer.model.Playlist
 import ir.ali0003.musicplayer.model.Track
 import ir.ali0003.musicplayer.ui.glass.*
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 @Composable
 fun LibraryScreen(
@@ -365,11 +366,14 @@ private fun SongsTabContent(
     listItemSize: ListItemSize = ListItemSize.SMALL
 ) {
     val listState = rememberLazyListState()
-    val isScrolling = listState.isScrollInProgress
+    val (nestedScrollConn, isFastScrolling) = rememberFastScrollState(
+        isScrollInProgress = listState.isScrollInProgress,
+        velocityThresholdPxPerSec = 1200f
+    )
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConn),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 180.dp)
     ) {
         itemsIndexed(
@@ -403,7 +407,7 @@ private fun SongsTabContent(
                 itemShape = itemShape,
                 isLastInGroup = isLast,
                 showDivider = !isLast,
-                isScrolling = isScrolling,
+                isScrolling = isFastScrolling,
                 onClick = onItemClick,
                 onToggleFavorite = onFavoriteClick,
                 onOpenAddToPlaylist = onAddToPlaylistClick,
@@ -423,12 +427,15 @@ private fun AlbumsTabContent(
         tracks.groupBy { it.album }
     }
     val gridState = rememberLazyGridState()
-    val isScrolling = gridState.isScrollInProgress
+    val (gridNestedScrollConn, isGridFastScrolling) = rememberFastScrollState(
+        isScrollInProgress = gridState.isScrollInProgress,
+        velocityThresholdPxPerSec = 1200f
+    )
 
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Fixed(2),
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().nestedScroll(gridNestedScrollConn),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -452,7 +459,7 @@ private fun AlbumsTabContent(
                         isPlaying = false,
                         imageUrl = sampleTrack?.albumArtUri,
                         theme = theme,
-                        isScrolling = isScrolling,
+                        isScrolling = isGridFastScrolling,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(10.dp))

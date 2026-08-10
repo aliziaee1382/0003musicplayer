@@ -115,8 +115,14 @@ class LocalAudioScanner(private val context: Context) {
                         id
                     ).toString()
 
-                    // Fast album art resolution: Use MediaStore Album Art URI directly without opening files
-                    val albumArtUri = resolveAlbumArtUriFast(albumId)
+                    // Smart album art resolution: Embedded picture -> MediaStore -> null
+                    val albumArtUri = resolveAlbumArtUri(
+                        context = context,
+                        filePath = filePath,
+                        contentUri = contentUri,
+                        trackId = trackId,
+                        albumId = albumId
+                    )
 
                     val cleanArtist = if (artist == "<unknown>" || artist.isBlank()) "Local Artist" else artist
                     val cleanAlbum = if (album == "<unknown>" || album.isBlank()) "Local Album" else album
@@ -212,7 +218,29 @@ class LocalAudioScanner(private val context: Context) {
             trackId: Long,
             albumId: Long
         ): String? {
-            return resolveAlbumArtUriFast(albumId)
+            // Priority 1: Extract embedded picture directly from audio file metadata
+            val embeddedArt = extractEmbeddedPicture(context, filePath, contentUri, trackId)
+            if (!embeddedArt.isNullOrBlank()) {
+                return embeddedArt
+            }
+
+            // Priority 2: MediaStore album art URI if accessible
+            if (albumId > 0) {
+                val mediaStoreArtUri = ContentUris.withAppendedId(
+                    Uri.parse("content://media/external/audio/albumart"),
+                    albumId
+                ).toString()
+                try {
+                    context.contentResolver.openInputStream(Uri.parse(mediaStoreArtUri))?.use {
+                        return mediaStoreArtUri
+                    }
+                } catch (e: Exception) {
+                    // MediaStore art file not present or unreadable
+                }
+            }
+
+            // Priority 3: Fallback to null (triggers clean solid placeholder)
+            return null
         }
 
         fun extractEmbeddedPicture(
@@ -221,6 +249,13 @@ class LocalAudioScanner(private val context: Context) {
             contentUri: String,
             trackId: Long
         ): String? {
+            val cacheDir = File(context.cacheDir, "album_covers")
+            val coverFile = File(cacheDir, "cover_$trackId.jpg")
+
+            if (coverFile.exists() && coverFile.length() > 0L) {
+                return Uri.fromFile(coverFile).toString()
+            }
+
             val retriever = MediaMetadataRetriever()
             try {
                 if (contentUri.isNotBlank()) {
@@ -233,14 +268,10 @@ class LocalAudioScanner(private val context: Context) {
 
                 val artBytes = retriever.embeddedPicture
                 if (artBytes != null && artBytes.isNotEmpty()) {
-                    val cacheDir = File(context.cacheDir, "album_covers")
                     if (!cacheDir.exists()) {
                         cacheDir.mkdirs()
                     }
-                    val coverFile = File(cacheDir, "cover_$trackId.jpg")
-                    if (!coverFile.exists() || coverFile.length() == 0L) {
-                        coverFile.writeBytes(artBytes)
-                    }
+                    coverFile.writeBytes(artBytes)
                     return Uri.fromFile(coverFile).toString()
                 }
             } catch (e: Exception) {

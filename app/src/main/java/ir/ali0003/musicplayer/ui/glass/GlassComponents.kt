@@ -10,6 +10,8 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.ripple
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +42,9 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.unit.Velocity
 import ir.ali0003.musicplayer.model.GlassTheme
 
 @Composable
@@ -137,14 +142,6 @@ fun GlassBox(
         content()
     }
 }
-
-private val DEFAULT_ARTWORK_GRADIENTS = listOf(
-    listOf(Color(0xFF8B5CF6), Color(0xFF3B82F6), Color(0xFF06B6D4)),
-    listOf(Color(0xFFEC4899), Color(0xFF8B5CF6), Color(0xFF6366F1)),
-    listOf(Color(0xFF10B981), Color(0xFF3B82F6), Color(0xFF059669)),
-    listOf(Color(0xFFF59E0B), Color(0xFFEF4444), Color(0xFF7C3AED)),
-    listOf(Color(0xFF06B6D4), Color(0xFF3B82F6), Color(0xFF1D4ED8))
-)
 
 private val GLASS_SHEEN_BRUSH = Brush.linearGradient(
     colors = listOf(
@@ -398,8 +395,8 @@ fun GlassChip(
 
 @Composable
 fun GlassArtworkCard(
-    gradientIndex: Int,
-    isPlaying: Boolean,
+    gradientIndex: Int = 0,
+    isPlaying: Boolean = false,
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
     theme: GlassTheme = GlassTheme.DarkGreen,
@@ -409,64 +406,37 @@ fun GlassArtworkCard(
     targetSize: Int = 128,
     isScrolling: Boolean = false
 ) {
-    val selectedGradient = remember(gradientIndex) {
-        DEFAULT_ARTWORK_GRADIENTS[gradientIndex % DEFAULT_ARTWORK_GRADIENTS.size]
-    }
     var isImageError by remember(imageUrl) { mutableStateOf(false) }
-    val showRecordCanvas = imageUrl.isNullOrEmpty() || isImageError
+    val hasImage = !imageUrl.isNullOrEmpty() && !isImageError
+    val showFallback = !hasImage || isScrolling
 
-    val rotationAngle = if (isPlaying && showRecordCanvas) {
-        val infiniteTransition = rememberInfiniteTransition(label = "disc_rotation")
-        val angle by infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(12000, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "disc_angle"
-        )
-        angle
-    } else 0f
-
-    val bgBrush = remember(selectedGradient) {
-        Brush.linearGradient(colors = selectedGradient)
+    val solidMatteColor = remember(theme) {
+        theme.glassFill.copy(alpha = 1f)
     }
 
     val borderBrush = remember(theme) {
         Brush.linearGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.6f),
+                Color.White.copy(alpha = 0.5f),
                 theme.glassBorder,
                 Color.White.copy(alpha = 0.2f)
             )
         )
     }
 
-    val solidMatteColor = remember(theme) {
-        theme.glassFill
-    }
-
     Box(
         modifier = modifier
             .aspectRatio(1f)
             .clip(shape)
-            .then(
-                if (isScrolling) {
-                    Modifier.background(solidMatteColor)
-                } else {
-                    Modifier.background(brush = bgBrush)
-                }
-            )
+            .background(solidMatteColor)
             .border(
                 width = 1.5.dp,
                 brush = borderBrush,
                 shape = shape
-            )
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        if (isScrolling) {
-            // Fast scroll mode: uniform solid matte box without image or canvas rendering
-        } else if (!showRecordCanvas) {
+        if (!showFallback) {
             val context = LocalContext.current
             val imageRequest = remember(imageUrl, targetSize) {
                 val builder = ImageRequest.Builder(context)
@@ -493,63 +463,24 @@ fun GlassArtworkCard(
                     isImageError = true
                 }
             )
-        } else {
-            // Vinyl Record Graphic Overlay
-            Canvas(
+
+            // Glass reflection sheen overlay for loaded images
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
-                    .graphicsLayer {
-                        rotationZ = rotationAngle
-                    }
-            ) {
-                val center = Offset(size.width / 2f, size.height / 2f)
-                val outerRadius = size.width / 2f
-
-                // Outer record grooves
-                drawCircle(
-                    color = Color.Black.copy(alpha = 0.25f),
-                    radius = outerRadius,
-                    center = center
-                )
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.08f),
-                    radius = outerRadius * 0.85f,
-                    center = center
-                )
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.08f),
-                    radius = outerRadius * 0.7f,
-                    center = center
-                )
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.08f),
-                    radius = outerRadius * 0.55f,
-                    center = center
-                )
-
-                // Inner label
-                drawCircle(
-                    color = theme.accentColor,
-                    radius = outerRadius * 0.35f,
-                    center = center
-                )
-                drawCircle(
-                    color = Color.Black,
-                    radius = outerRadius * 0.1f,
-                    center = center
-                )
-            }
+                    .background(brush = GLASS_SHEEN_BRUSH)
+            )
+        } else {
+            // Centered simple music note icon on solid matte background
+            Icon(
+                imageVector = Icons.Default.MusicNote,
+                contentDescription = null,
+                tint = theme.accentColor,
+                modifier = Modifier.fillMaxSize(0.42f)
+            )
         }
 
-        // Glass reflection sheen overlay
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(brush = GLASS_SHEEN_BRUSH)
-        )
-
-        if (titleText.isNotEmpty()) {
+        if (titleText.isNotEmpty() && !showFallback) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -603,4 +534,45 @@ fun GlassSlider(
         ),
         modifier = modifier.then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
     )
+}
+
+@Composable
+fun rememberFastScrollState(
+    isScrollInProgress: Boolean,
+    velocityThresholdPxPerSec: Float = 1200f
+): Pair<NestedScrollConnection, Boolean> {
+    var isFastScrolling by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isScrollInProgress) {
+        if (!isScrollInProgress) {
+            isFastScrolling = false
+        }
+    }
+
+    val connection = remember(velocityThresholdPxPerSec) {
+        object : NestedScrollConnection {
+            private var lastTimeNanos: Long = 0L
+
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val now = System.nanoTime()
+                if (lastTimeNanos != 0L) {
+                    val dtSeconds = (now - lastTimeNanos) / 1_000_000_000f
+                    if (dtSeconds in 0.001f..0.1f) {
+                        val dy = kotlin.math.abs(available.y)
+                        val speed = dy / dtSeconds
+                        isFastScrolling = speed > velocityThresholdPxPerSec
+                    }
+                }
+                lastTimeNanos = now
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                isFastScrolling = false
+                return super.onPostFling(consumed, available)
+            }
+        }
+    }
+
+    return connection to (isScrollInProgress && isFastScrolling)
 }

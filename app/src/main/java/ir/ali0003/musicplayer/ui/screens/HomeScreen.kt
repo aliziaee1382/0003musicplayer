@@ -37,6 +37,7 @@ import ir.ali0003.musicplayer.model.TrackSortOrder
 import ir.ali0003.musicplayer.ui.glass.*
 import androidx.compose.ui.res.painterResource
 import ir.ali0003.musicplayer.R
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 @Composable
 fun HomeScreen(
@@ -129,12 +130,16 @@ fun HomeScreen(
     }
 
     val listState = rememberLazyListState()
-    val isScrolling = listState.isScrollInProgress
+    val (nestedScrollConn, isFastScrolling) = rememberFastScrollState(
+        isScrollInProgress = listState.isScrollInProgress,
+        velocityThresholdPxPerSec = 1200f
+    )
 
     LazyColumn(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
+            .nestedScroll(nestedScrollConn)
             .testTag("home_screen_column"),
         contentPadding = PaddingValues(bottom = 180.dp)
     ) {
@@ -415,7 +420,7 @@ fun HomeScreen(
                         itemShape = itemShape,
                         isLastInGroup = isLast,
                         showDivider = !isLast,
-                        isScrolling = isScrolling,
+                        isScrolling = isFastScrolling,
                         onClick = onItemClick,
                         onToggleFavorite = onFavoriteClick,
                         onOpenAddToPlaylist = onAddToPlaylistClick,
