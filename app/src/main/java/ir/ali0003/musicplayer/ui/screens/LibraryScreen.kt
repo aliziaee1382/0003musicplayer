@@ -56,7 +56,8 @@ fun LibraryScreen(
     onOpenAddToPlaylist: ((Track) -> Unit)? = null,
     onSelectPlaylist: ((Playlist) -> Unit)? = null,
     onEditPlaylist: ((Playlist) -> Unit)? = null,
-    onDeletePlaylist: ((Long) -> Unit)? = null
+    onDeletePlaylist: ((Long) -> Unit)? = null,
+    scrollToTopTrigger: Int = 0
 ) {
     val tabs = listOf("Playlists", "Songs", "Albums", "Artists", "Folders")
     var searchFilter by remember { mutableStateOf("") }
@@ -162,7 +163,8 @@ fun LibraryScreen(
                     onSelectPlaylist = onSelectPlaylist,
                     onEditPlaylist = onEditPlaylist,
                     onDeletePlaylist = onDeletePlaylist,
-                    theme = theme
+                    theme = theme,
+                    scrollToTopTrigger = scrollToTopTrigger
                 )
                 "Songs" -> SongsTabContent(
                     tracks = if (searchFilter.isBlank()) tracks else tracks.filter { it.title.contains(searchFilter, true) || it.artist.contains(searchFilter, true) },
@@ -170,21 +172,25 @@ fun LibraryScreen(
                     onToggleFavorite = onToggleFavorite,
                     onOpenAddToPlaylist = onOpenAddToPlaylist,
                     theme = theme,
-                    listItemSize = listItemSize
+                    listItemSize = listItemSize,
+                    scrollToTopTrigger = scrollToTopTrigger
                 )
                 "Albums" -> AlbumsTabContent(
                     tracks = tracks,
                     onPlayTrack = onPlayTrack,
-                    theme = theme
+                    theme = theme,
+                    scrollToTopTrigger = scrollToTopTrigger
                 )
                 "Artists" -> ArtistsTabContent(
                     tracks = tracks,
                     onPlayTrack = onPlayTrack,
-                    theme = theme
+                    theme = theme,
+                    scrollToTopTrigger = scrollToTopTrigger
                 )
                 "Folders" -> FoldersTabContent(
                     folders = folders,
-                    theme = theme
+                    theme = theme,
+                    scrollToTopTrigger = scrollToTopTrigger
                 )
             }
         }
@@ -198,9 +204,18 @@ private fun PlaylistsTabContent(
     onSelectPlaylist: ((Playlist) -> Unit)? = null,
     onEditPlaylist: ((Playlist) -> Unit)? = null,
     onDeletePlaylist: ((Long) -> Unit)? = null,
-    theme: GlassTheme
+    theme: GlassTheme,
+    scrollToTopTrigger: Int = 0
 ) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -363,12 +378,19 @@ private fun SongsTabContent(
     onToggleFavorite: (Track) -> Unit,
     onOpenAddToPlaylist: ((Track) -> Unit)? = null,
     theme: GlassTheme,
-    listItemSize: ListItemSize = ListItemSize.SMALL
+    listItemSize: ListItemSize = ListItemSize.SMALL,
+    scrollToTopTrigger: Int = 0
 ) {
     val listState = rememberLazyListState()
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            listState.animateScrollToItem(0)
+        }
+    }
     val (nestedScrollConn, isFastScrolling) = rememberFastScrollState(
         isScrollInProgress = listState.isScrollInProgress,
-        velocityThresholdPxPerSec = 12000f
+        highThresholdPxPerSec = 8000f,
+        lowThresholdPxPerSec = 3000f
     )
 
     LazyColumn(
@@ -421,15 +443,22 @@ private fun SongsTabContent(
 private fun AlbumsTabContent(
     tracks: List<Track>,
     onPlayTrack: (Track, List<Track>?) -> Unit,
-    theme: GlassTheme
+    theme: GlassTheme,
+    scrollToTopTrigger: Int = 0
 ) {
     val albums = remember(tracks) {
         tracks.groupBy { it.album }
     }
     val gridState = rememberLazyGridState()
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            gridState.animateScrollToItem(0)
+        }
+    }
     val (gridNestedScrollConn, isGridFastScrolling) = rememberFastScrollState(
         isScrollInProgress = gridState.isScrollInProgress,
-        velocityThresholdPxPerSec = 12000f
+        highThresholdPxPerSec = 8000f,
+        lowThresholdPxPerSec = 3000f
     )
 
     LazyVerticalGrid(
@@ -488,13 +517,21 @@ private fun AlbumsTabContent(
 private fun ArtistsTabContent(
     tracks: List<Track>,
     onPlayTrack: (Track, List<Track>?) -> Unit,
-    theme: GlassTheme
+    theme: GlassTheme,
+    scrollToTopTrigger: Int = 0
 ) {
     val artists = remember(tracks) {
         tracks.groupBy { it.artist }
     }
+    val listState = rememberLazyListState()
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            listState.animateScrollToItem(0)
+        }
+    }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -565,9 +602,18 @@ private fun ArtistsTabContent(
 @Composable
 private fun FoldersTabContent(
     folders: List<AudioFolder>,
-    theme: GlassTheme
+    theme: GlassTheme,
+    scrollToTopTrigger: Int = 0
 ) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)

@@ -227,6 +227,7 @@ fun GlassAudioApp(
     val eqBandGains by playerManager.eqBandGains.collectAsStateWithLifecycle()
     val minDurationFilterSeconds by viewModel.minDurationFilter.collectAsStateWithLifecycle()
     val listItemSize by viewModel.listItemSize.collectAsStateWithLifecycle()
+    val isDynamicBgEnabled by viewModel.isDynamicBgEnabled.collectAsStateWithLifecycle()
 
     val tracks by viewModel.allTracks.collectAsStateWithLifecycle()
     val hiddenTracks by viewModel.hiddenTracks.collectAsStateWithLifecycle()
@@ -247,6 +248,11 @@ fun GlassAudioApp(
     val showSleepTimer by viewModel.showSleepTimer.collectAsStateWithLifecycle()
     val showThemeSelector by viewModel.showThemeSelector.collectAsStateWithLifecycle()
     val showCreatePlaylist by viewModel.showCreatePlaylist.collectAsStateWithLifecycle()
+
+    var homeScrollToTopTrigger by remember { mutableIntStateOf(0) }
+    var exploreScrollToTopTrigger by remember { mutableIntStateOf(0) }
+    var libraryScrollToTopTrigger by remember { mutableIntStateOf(0) }
+    var settingsScrollToTopTrigger by remember { mutableIntStateOf(0) }
     val targetTrackForPlaylist by viewModel.targetTrackForPlaylist.collectAsStateWithLifecycle()
     val selectedPlaylist by viewModel.selectedPlaylist.collectAsStateWithLifecycle()
     val selectedPlaylistTracks by viewModel.selectedPlaylistTracks.collectAsStateWithLifecycle()
@@ -286,6 +292,7 @@ fun GlassAudioApp(
 
     GlassBackgroundContainer(
         theme = currentTheme,
+        isAnimated = isDynamicBgEnabled,
         modifier = Modifier.fillMaxSize()
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -349,7 +356,8 @@ fun GlassAudioApp(
                                 onOpenThemeSelector = { viewModel.setShowThemeSelector(true) },
                                 onOpenEqualizer = { viewModel.setShowEqualizer(true) },
                                 onOpenAddToPlaylist = { viewModel.openAddToPlaylistForTrack(it) },
-                                onScanLocalMusic = { permissionLauncher.launch(permissionsToRequest) }
+                                onScanLocalMusic = { permissionLauncher.launch(permissionsToRequest) },
+                                scrollToTopTrigger = homeScrollToTopTrigger
                             )
 
                             "Explore" -> ExploreScreen(
@@ -358,7 +366,8 @@ fun GlassAudioApp(
                                 listItemSize = listItemSize,
                                 onPlayTrack = { track, queue -> viewModel.playTrack(track, queue) },
                                 onToggleFavorite = { viewModel.toggleFavorite(it) },
-                                onOpenAddToPlaylist = { viewModel.openAddToPlaylistForTrack(it) }
+                                onOpenAddToPlaylist = { viewModel.openAddToPlaylistForTrack(it) },
+                                scrollToTopTrigger = exploreScrollToTopTrigger
                             )
 
                             "Library" -> LibraryScreen(
@@ -383,7 +392,8 @@ fun GlassAudioApp(
                                     selectedPlaylistInitialEditMode = true
                                     viewModel.setSelectedPlaylist(it)
                                 },
-                                onDeletePlaylist = { playlistId -> viewModel.deletePlaylist(playlistId) }
+                                onDeletePlaylist = { playlistId -> viewModel.deletePlaylist(playlistId) },
+                                scrollToTopTrigger = libraryScrollToTopTrigger
                             )
 
                             "Settings" -> SettingsScreen(
@@ -392,11 +402,14 @@ fun GlassAudioApp(
                                 onMinDurationFilterChange = { viewModel.setMinDurationFilter(it) },
                                 listItemSize = listItemSize,
                                 onListItemSizeChange = { viewModel.setListItemSize(it) },
+                                isDynamicBgEnabled = isDynamicBgEnabled,
+                                onDynamicBgChange = { viewModel.setDynamicBgEnabled(it) },
                                 onOpenThemeSelector = { viewModel.setShowThemeSelector(true) },
                                 onOpenEqualizer = { viewModel.setShowEqualizer(true) },
                                 onScanLocalMusic = { permissionLauncher.launch(permissionsToRequest) },
                                 onOpenHiddenTracks = { showHiddenTracksDialog = true },
-                                hiddenCount = hiddenTracks.size
+                                hiddenCount = hiddenTracks.size,
+                                scrollToTopTrigger = settingsScrollToTopTrigger
                             )
                         }
                     }
@@ -438,7 +451,18 @@ fun GlassAudioApp(
                 // Glass Bottom Navigation Bar
                 GlassBottomNavBar(
                     activeTab = activeNavTab,
-                    onTabSelected = { viewModel.setActiveNavTab(it) },
+                    onTabSelected = { selectedTab ->
+                        if (selectedTab == activeNavTab) {
+                            when (selectedTab) {
+                                "Home" -> homeScrollToTopTrigger++
+                                "Explore" -> exploreScrollToTopTrigger++
+                                "Library" -> libraryScrollToTopTrigger++
+                                "Settings" -> settingsScrollToTopTrigger++
+                            }
+                        } else {
+                            viewModel.setActiveNavTab(selectedTab)
+                        }
+                    },
                     theme = currentTheme
                 )
             }

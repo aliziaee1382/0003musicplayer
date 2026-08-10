@@ -168,6 +168,11 @@ class MusicRepository(private val dao: MusicDao) {
         dao.saveUserPreferences(current.copy(listItemSize = size.name))
     }
 
+    suspend fun updateDynamicBgPreference(enabled: Boolean) {
+        val current = dao.getUserPreferencesDirect() ?: UserPreferencesEntity()
+        dao.saveUserPreferences(current.copy(isDynamicBgEnabled = enabled))
+    }
+
     suspend fun updatePlaybackState(trackId: Long, positionMs: Long, queueTrackIds: String) = withContext(Dispatchers.IO) {
         val current = dao.getUserPreferencesDirect() ?: UserPreferencesEntity()
         dao.saveUserPreferences(

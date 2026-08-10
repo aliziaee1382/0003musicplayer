@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,7 +40,8 @@ fun ExploreScreen(
     listItemSize: ListItemSize = ListItemSize.SMALL,
     onPlayTrack: (Track, List<Track>?) -> Unit,
     onToggleFavorite: ((Track) -> Unit)? = null,
-    onOpenAddToPlaylist: ((Track) -> Unit)? = null
+    onOpenAddToPlaylist: ((Track) -> Unit)? = null,
+    scrollToTopTrigger: Int = 0
 ) {
     // Dynamic Listening Statistics calculation based on real listening time in DB
     val totalListeningSeconds = remember(tracks) { tracks.sumOf { it.effectiveListeningSeconds() } }
@@ -91,9 +93,15 @@ fun ExploreScreen(
     }
 
     val listState = rememberLazyListState()
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            listState.animateScrollToItem(0)
+        }
+    }
     val (nestedScrollConn, isFastScrolling) = rememberFastScrollState(
         isScrollInProgress = listState.isScrollInProgress,
-        velocityThresholdPxPerSec = 12000f
+        highThresholdPxPerSec = 8000f,
+        lowThresholdPxPerSec = 3000f
     )
 
     LazyColumn(

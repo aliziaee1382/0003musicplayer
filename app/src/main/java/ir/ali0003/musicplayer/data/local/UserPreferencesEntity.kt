@@ -25,5 +25,6 @@ data class UserPreferencesEntity(
     val lastPlaybackPositionMs: Long = 0L,
     val lastQueueTrackIds: String = "",
     val isAutoSystemTheme: Boolean = true,
-    val listItemSize: String = "SMALL"
+    val listItemSize: String = "SMALL",
+    val isDynamicBgEnabled: Boolean = true
 )

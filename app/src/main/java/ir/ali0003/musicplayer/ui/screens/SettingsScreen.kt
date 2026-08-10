@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,13 +34,24 @@ fun SettingsScreen(
     onMinDurationFilterChange: (Int) -> Unit = {},
     listItemSize: ListItemSize = ListItemSize.SMALL,
     onListItemSizeChange: (ListItemSize) -> Unit = {},
+    isDynamicBgEnabled: Boolean = true,
+    onDynamicBgChange: (Boolean) -> Unit = {},
     onOpenThemeSelector: () -> Unit,
     onOpenEqualizer: () -> Unit,
     onScanLocalMusic: (() -> Unit)? = null,
     onOpenHiddenTracks: (() -> Unit)? = null,
-    hiddenCount: Int = 0
+    hiddenCount: Int = 0,
+    scrollToTopTrigger: Int = 0
 ) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .testTag("settings_screen_column"),
@@ -73,63 +85,124 @@ fun SettingsScreen(
             )
             Spacer(modifier = Modifier.height(10.dp))
 
-            GlassCard(
-                onClick = onOpenThemeSelector,
-                theme = theme,
-                modifier = Modifier.fillMaxWidth(),
-                testTag = "settings_theme_selector_card"
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                GlassCard(
+                    onClick = onOpenThemeSelector,
+                    theme = theme,
+                    modifier = Modifier.fillMaxWidth(),
+                    testTag = "settings_theme_selector_card"
                 ) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(theme.accentColor, theme.glowColor)
-                                    )
-                                )
-                                .border(1.5.dp, theme.glassBorder, CircleShape),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Palette,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        brush = Brush.linearGradient(
+                                            colors = listOf(theme.accentColor, theme.glowColor)
+                                        )
+                                    )
+                                    .border(1.5.dp, theme.glassBorder, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Palette,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column {
+                                Text(
+                                    text = "Glass Theme Customization",
+                                    color = theme.textColor,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "${theme.colorNameEn} • ${if (theme.isLight) "Light Mode" else "Dark Mode"}",
+                                    color = theme.accentColor,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.width(14.dp))
-                        Column {
-                            Text(
-                                text = "Glass Theme Customization",
-                                color = theme.textColor,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = "${theme.colorNameEn} • ${if (theme.isLight) "Light Mode" else "Dark Mode"}",
-                                color = theme.accentColor,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "Select Theme",
+                            tint = theme.subtextColor
+                        )
                     }
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = "Select Theme",
-                        tint = theme.subtextColor
-                    )
+                }
+
+                GlassCard(
+                    onClick = { onDynamicBgChange(!isDynamicBgEnabled) },
+                    theme = theme,
+                    modifier = Modifier.fillMaxWidth(),
+                    testTag = "settings_dynamic_bg_card"
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(theme.accentColor.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = theme.accentColor,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column {
+                                Text(
+                                    text = "Animated Background",
+                                    color = theme.textColor,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "Enable smooth ambient background motion",
+                                    color = theme.subtextColor,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = isDynamicBgEnabled,
+                            onCheckedChange = { onDynamicBgChange(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = theme.accentColor,
+                                uncheckedThumbColor = theme.subtextColor,
+                                uncheckedTrackColor = theme.textColor.copy(alpha = 0.1f)
+                            )
+                        )
+                    }
                 }
             }
         }

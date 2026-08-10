@@ -87,6 +87,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val sortOrder: StateFlow<TrackSortOrder>
     val isAutoSystemTheme: StateFlow<Boolean>
     val listItemSize: StateFlow<ListItemSize>
+    val isDynamicBgEnabled: StateFlow<Boolean>
 
     private val _editingTrack = MutableStateFlow<Track?>(null)
     val editingTrack: StateFlow<Track?> = _editingTrack.asStateFlow()
@@ -136,6 +137,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5000),
                 ListItemSize.SMALL
+            )
+
+        isDynamicBgEnabled = userPrefsFlow
+            .map { it.isDynamicBgEnabled }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                true
             )
 
         allTracks = combine(repository.allTracks, minDurationFilter) { tracks, minSecs ->
@@ -654,6 +663,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setListItemSize(size: ListItemSize) {
         viewModelScope.launch {
             repository.updateListItemSize(size)
+        }
+    }
+
+    fun setDynamicBgEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.updateDynamicBgPreference(enabled)
         }
     }
 

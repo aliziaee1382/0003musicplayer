@@ -51,8 +51,59 @@ import ir.ali0003.musicplayer.model.GlassTheme
 fun GlassBackgroundContainer(
     theme: GlassTheme,
     modifier: Modifier = Modifier,
+    isAnimated: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
+    val infiniteTransition = rememberInfiniteTransition(label = "dynamic_bg_transition")
+
+    val orb1X by if (isAnimated) {
+        infiniteTransition.animateFloat(
+            initialValue = -0.08f,
+            targetValue = 0.08f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(16000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "orb1X"
+        )
+    } else remember { mutableStateOf(0f) }
+
+    val orb1Y by if (isAnimated) {
+        infiniteTransition.animateFloat(
+            initialValue = -0.05f,
+            targetValue = 0.05f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(18000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "orb1Y"
+        )
+    } else remember { mutableStateOf(0f) }
+
+    val orb2X by if (isAnimated) {
+        infiniteTransition.animateFloat(
+            initialValue = 0.07f,
+            targetValue = -0.07f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(20000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "orb2X"
+        )
+    } else remember { mutableStateOf(0f) }
+
+    val orb2Y by if (isAnimated) {
+        infiniteTransition.animateFloat(
+            initialValue = -0.06f,
+            targetValue = 0.06f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(15000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "orb2Y"
+        )
+    } else remember { mutableStateOf(0f) }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -69,34 +120,38 @@ fun GlassBackgroundContainer(
             val width = size.width
             val height = size.height
 
+            val center1 = Offset(width * (0.25f + orb1X), height * (0.25f + orb1Y))
+            val center2 = Offset(width * (0.75f + orb2X), height * (0.70f + orb2Y))
+            val center3 = Offset(width * (0.50f + orb1Y), height * (0.90f + orb1X))
+
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(theme.glowColor.copy(alpha = 0.45f), Color.Transparent),
-                    center = Offset(width * 0.25f, height * 0.25f),
+                    center = center1,
                     radius = width * 0.6f
                 ),
                 radius = width * 0.6f,
-                center = Offset(width * 0.25f, height * 0.25f)
+                center = center1
             )
 
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(theme.accentColor.copy(alpha = 0.35f), Color.Transparent),
-                    center = Offset(width * 0.75f, height * 0.70f),
+                    center = center2,
                     radius = width * 0.7f
                 ),
                 radius = width * 0.7f,
-                center = Offset(width * 0.75f, height * 0.70f)
+                center = center2
             )
 
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(theme.glowColor.copy(alpha = 0.3f), Color.Transparent),
-                    center = Offset(width * 0.5f, height * 0.90f),
+                    center = center3,
                     radius = width * 0.5f
                 ),
                 radius = width * 0.5f,
-                center = Offset(width * 0.5f, height * 0.90f)
+                center = center3
             )
         }
 
@@ -543,7 +598,8 @@ fun GlassSlider(
 @Composable
 fun rememberFastScrollState(
     isScrollInProgress: Boolean,
-    velocityThresholdPxPerSec: Float = 12000f
+    highThresholdPxPerSec: Float = 8000f,
+    lowThresholdPxPerSec: Float = 3000f
 ): Pair<NestedScrollConnection, Boolean> {
     var isFastScrolling by remember { mutableStateOf(false) }
 
@@ -553,7 +609,7 @@ fun rememberFastScrollState(
         }
     }
 
-    val connection = remember(velocityThresholdPxPerSec) {
+    val connection = remember(highThresholdPxPerSec, lowThresholdPxPerSec) {
         object : NestedScrollConnection {
             private var lastTimeNanos: Long = 0L
 
@@ -564,7 +620,11 @@ fun rememberFastScrollState(
                     if (dtSeconds in 0.001f..0.1f) {
                         val dy = kotlin.math.abs(available.y)
                         val speed = dy / dtSeconds
-                        isFastScrolling = speed > velocityThresholdPxPerSec
+                        if (speed > highThresholdPxPerSec) {
+                            isFastScrolling = true
+                        } else if (speed < lowThresholdPxPerSec) {
+                            isFastScrolling = false
+                        }
                     }
                 }
                 lastTimeNanos = now
@@ -577,6 +637,5 @@ fun rememberFastScrollState(
             }
         }
     }
-
     return connection to (isScrollInProgress && isFastScrolling)
 }

@@ -63,7 +63,8 @@ fun HomeScreen(
     onOpenThemeSelector: () -> Unit,
     onOpenEqualizer: () -> Unit,
     onOpenAddToPlaylist: ((Track) -> Unit)? = null,
-    onScanLocalMusic: (() -> Unit)? = null
+    onScanLocalMusic: (() -> Unit)? = null,
+    scrollToTopTrigger: Int = 0
 ) {
     var showSortDialog by remember { mutableStateOf(false) }
     var showSearchDialog by remember { mutableStateOf(false) }
@@ -130,9 +131,15 @@ fun HomeScreen(
     }
 
     val listState = rememberLazyListState()
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            listState.animateScrollToItem(0)
+        }
+    }
     val (nestedScrollConn, isFastScrolling) = rememberFastScrollState(
         isScrollInProgress = listState.isScrollInProgress,
-        velocityThresholdPxPerSec = 12000f
+        highThresholdPxPerSec = 8000f,
+        lowThresholdPxPerSec = 3000f
     )
 
     LazyColumn(
