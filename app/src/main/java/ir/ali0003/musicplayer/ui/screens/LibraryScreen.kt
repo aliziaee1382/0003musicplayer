@@ -457,8 +457,8 @@ private fun AlbumsTabContent(
     }
     val (gridNestedScrollConn, isGridFastScrolling) = rememberFastScrollState(
         isScrollInProgress = gridState.isScrollInProgress,
-        highThresholdPxPerSec = 8000f,
-        lowThresholdPxPerSec = 3000f
+        highThresholdPxPerSec = 5000f,
+        lowThresholdPxPerSec = 1000f
     )
 
     LazyVerticalGrid(

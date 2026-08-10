@@ -2,6 +2,8 @@ package ir.ali0003.musicplayer.data.local
 
 import android.content.ContentUris
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 
 data class ScanProgress(
     val current: Int,
@@ -278,13 +281,11 @@ class LocalAudioScanner(private val context: Context) {
             contentUri: String,
             trackId: Long
         ): String? {
-            val cacheDir = File(context.cacheDir, "album_covers")
-            val coverFile = File(cacheDir, "cover_$trackId.jpg")
-
+            val cacheDir = File(context.cacheDir, "album_covers_thumb_48")
+            val coverFile = File(cacheDir, "thumb_$trackId.webp")
             if (coverFile.exists() && coverFile.length() > 0L) {
                 return Uri.fromFile(coverFile).toString()
             }
-
             val retriever = MediaMetadataRetriever()
             try {
                 if (contentUri.isNotBlank()) {
@@ -294,23 +295,38 @@ class LocalAudioScanner(private val context: Context) {
                 } else {
                     return null
                 }
-
                 val artBytes = retriever.embeddedPicture
                 if (artBytes != null && artBytes.isNotEmpty()) {
-                    if (!cacheDir.exists()) {
-                        cacheDir.mkdirs()
+                    val options = BitmapFactory.Options().apply {
+                        inPreferredConfig = Bitmap.Config.RGB_565
                     }
-                    coverFile.writeBytes(artBytes)
-                    return Uri.fromFile(coverFile).toString()
+                    val originalBitmap = BitmapFactory.decodeByteArray(artBytes, 0, artBytes.size, options)
+                    if (originalBitmap != null) {
+                        // Resize strictly to 48x48 pixels for ultra-lightweight thumbnails
+                        val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, 48, 48, true)
+                        if (!cacheDir.exists()) {
+                            cacheDir.mkdirs()
+                        }
+                        FileOutputStream(coverFile).use { out ->
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                scaledBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 70, out)
+                            } else {
+                                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 70, out)
+                            }
+                        }
+                        if (scaledBitmap != originalBitmap) {
+                            scaledBitmap.recycle()
+                        }
+                        originalBitmap.recycle()
+                        return Uri.fromFile(coverFile).toString()
+                    }
                 }
             } catch (e: Exception) {
-                // Ignore corrupt or unreadable files cleanly
+                // Ignore errors cleanly
             } finally {
                 try {
                     retriever.release()
-                } catch (e: Exception) {
-                    // Ignore release errors
-                }
+                } catch (e: Exception) {}
             }
             return null
         }
