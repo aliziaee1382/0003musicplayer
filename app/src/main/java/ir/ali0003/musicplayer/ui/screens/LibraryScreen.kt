@@ -10,8 +10,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -362,7 +364,11 @@ private fun SongsTabContent(
     theme: GlassTheme,
     listItemSize: ListItemSize = ListItemSize.SMALL
 ) {
+    val listState = rememberLazyListState()
+    val isScrolling = listState.isScrollInProgress
+
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 180.dp)
     ) {
@@ -397,6 +403,7 @@ private fun SongsTabContent(
                 itemShape = itemShape,
                 isLastInGroup = isLast,
                 showDivider = !isLast,
+                isScrolling = isScrolling,
                 onClick = onItemClick,
                 onToggleFavorite = onFavoriteClick,
                 onOpenAddToPlaylist = onAddToPlaylistClick,
@@ -415,8 +422,11 @@ private fun AlbumsTabContent(
     val albums = remember(tracks) {
         tracks.groupBy { it.album }
     }
+    val gridState = rememberLazyGridState()
+    val isScrolling = gridState.isScrollInProgress
 
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
@@ -442,6 +452,7 @@ private fun AlbumsTabContent(
                         isPlaying = false,
                         imageUrl = sampleTrack?.albumArtUri,
                         theme = theme,
+                        isScrolling = isScrolling,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(10.dp))

@@ -276,6 +276,7 @@ fun NowPlayingSheet(
                     theme = theme,
                     titleText = "",
                     subtitleText = "",
+                    targetSize = 0,
                     modifier = Modifier.fillMaxSize()
                 )
             }

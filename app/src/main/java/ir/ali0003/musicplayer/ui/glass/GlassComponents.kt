@@ -406,7 +406,8 @@ fun GlassArtworkCard(
     shape: Shape = RoundedCornerShape(14.dp),
     titleText: String = "",
     subtitleText: String = "",
-    targetSize: Int = 128
+    targetSize: Int = 128,
+    isScrolling: Boolean = false
 ) {
     val selectedGradient = remember(gradientIndex) {
         DEFAULT_ARTWORK_GRADIENTS[gradientIndex % DEFAULT_ARTWORK_GRADIENTS.size]
@@ -453,20 +454,23 @@ fun GlassArtworkCard(
                 shape = shape
             )
     ) {
-        if (!showRecordCanvas) {
+        if (!showRecordCanvas && !isScrolling) {
             val context = LocalContext.current
             val imageRequest = remember(imageUrl, targetSize) {
-                ImageRequest.Builder(context)
+                val builder = ImageRequest.Builder(context)
                     .data(imageUrl)
-                    .memoryCacheKey(imageUrl)
+                    .memoryCacheKey(if (targetSize > 0) "${imageUrl}_$targetSize" else imageUrl)
                     .diskCacheKey(imageUrl)
-                    .size(targetSize, targetSize)
-                    .precision(coil.size.Precision.EXACT)
                     .allowHardware(true)
                     .crossfade(150)
                     .memoryCachePolicy(CachePolicy.ENABLED)
                     .diskCachePolicy(CachePolicy.ENABLED)
-                    .build()
+
+                if (targetSize > 0) {
+                    builder.size(targetSize, targetSize)
+                        .precision(coil.size.Precision.EXACT)
+                }
+                builder.build()
             }
             AsyncImage(
                 model = imageRequest,
