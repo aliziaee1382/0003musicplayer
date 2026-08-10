@@ -443,18 +443,30 @@ fun GlassArtworkCard(
         )
     }
 
+    val solidMatteColor = remember(theme) {
+        theme.glassFill
+    }
+
     Box(
         modifier = modifier
             .aspectRatio(1f)
             .clip(shape)
-            .background(brush = bgBrush)
+            .then(
+                if (isScrolling) {
+                    Modifier.background(solidMatteColor)
+                } else {
+                    Modifier.background(brush = bgBrush)
+                }
+            )
             .border(
                 width = 1.5.dp,
                 brush = borderBrush,
                 shape = shape
             )
     ) {
-        if (!showRecordCanvas && !isScrolling) {
+        if (isScrolling) {
+            // Fast scroll mode: uniform solid matte box without image or canvas rendering
+        } else if (!showRecordCanvas) {
             val context = LocalContext.current
             val imageRequest = remember(imageUrl, targetSize) {
                 val builder = ImageRequest.Builder(context)
