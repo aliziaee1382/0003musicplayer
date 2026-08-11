@@ -35,6 +35,9 @@ interface MusicDao {
     @Query("UPDATE tracks SET title = :title, artist = :artist, album = :album WHERE id = :trackId")
     suspend fun updateTrackInfo(trackId: Long, title: String, artist: String, album: String)
 
+    @Query("UPDATE tracks SET lyrics = :lyrics WHERE id = :trackId")
+    suspend fun updateTrackLyrics(trackId: Long, lyrics: String)
+
     @Query("DELETE FROM tracks WHERE id = :trackId")
     suspend fun deleteTrack(trackId: Long)
 

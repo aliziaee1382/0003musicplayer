@@ -539,6 +539,7 @@ fun GlassAudioApp(
                     onEditTrack = { track -> viewModel.openEditTrack(track) },
                     onHideTrack = { trackId -> viewModel.hideTrack(trackId) },
                     onDeleteTrack = { trackId -> viewModel.deleteTrack(trackId) },
+                    onLoadLyrics = { track -> viewModel.loadLyricsForTrack(track) },
                     onCollapse = { viewModel.setNowPlayingExpanded(false) }
                 )
             }

@@ -140,6 +140,16 @@ class AudioPlayerManager(private val context: Context) {
     private val _currentTrack = MutableStateFlow<Track?>(null)
     val currentTrack: StateFlow<Track?> = _currentTrack.asStateFlow()
 
+    fun updateCurrentTrackLyrics(trackId: Long, lyrics: String) {
+        val current = _currentTrack.value
+        if (current != null && current.id == trackId) {
+            _currentTrack.value = current.copy(lyrics = lyrics)
+        }
+        playlistQueue = playlistQueue.map {
+            if (it.id == trackId) it.copy(lyrics = lyrics) else it
+        }
+    }
+
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 

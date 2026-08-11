@@ -672,6 +672,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun loadLyricsForTrack(track: Track) {
+        if (!track.lyrics.isNullOrBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val extractedLyrics = ir.ali0003.musicplayer.data.local.LocalAudioScanner.extractEmbeddedLyrics(
+                context = getApplication(),
+                filePath = track.audioUrl,
+                contentUri = track.audioUrl
+            )
+            if (!extractedLyrics.isNullOrBlank()) {
+                repository.updateTrackLyrics(track.id, extractedLyrics)
+                playerManager.updateCurrentTrackLyrics(track.id, extractedLyrics)
+            }
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         playerManager.triggerPlaybackStateSave()

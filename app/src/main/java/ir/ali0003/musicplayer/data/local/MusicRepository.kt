@@ -52,6 +52,10 @@ class MusicRepository(private val dao: MusicDao) {
         dao.updateTrackInfo(trackId, title, artist, album)
     }
 
+    suspend fun updateTrackLyrics(trackId: Long, lyrics: String) = withContext(Dispatchers.IO) {
+        dao.updateTrackLyrics(trackId, lyrics)
+    }
+
     suspend fun deleteTrack(trackId: Long) = withContext(Dispatchers.IO) {
         dao.deleteTrackFromCrossRefs(trackId)
         dao.deleteTrack(trackId)

@@ -23,7 +23,8 @@ data class TrackEntity(
     val isHidden: Boolean = false,
     val listeningSeconds: Long = 0L,
     val dateAddedTimestamp: Long = 0L,
-    val dateModifiedTimestamp: Long = 0L
+    val dateModifiedTimestamp: Long = 0L,
+    val lyrics: String? = null
 ) {
     fun toTrack(): Track = Track(
         id = id,
@@ -43,7 +44,8 @@ data class TrackEntity(
         isHidden = isHidden,
         listeningSeconds = listeningSeconds,
         dateAddedTimestamp = if (dateAddedTimestamp > 0) dateAddedTimestamp else System.currentTimeMillis(),
-        dateModifiedTimestamp = if (dateModifiedTimestamp > 0) dateModifiedTimestamp else System.currentTimeMillis()
+        dateModifiedTimestamp = if (dateModifiedTimestamp > 0) dateModifiedTimestamp else System.currentTimeMillis(),
+        lyrics = lyrics
     )
 
     companion object {
@@ -65,7 +67,8 @@ data class TrackEntity(
             isHidden = track.isHidden,
             listeningSeconds = track.listeningSeconds,
             dateAddedTimestamp = track.dateAddedTimestamp,
-            dateModifiedTimestamp = track.dateModifiedTimestamp
+            dateModifiedTimestamp = track.dateModifiedTimestamp,
+            lyrics = track.lyrics
         )
     }
 }

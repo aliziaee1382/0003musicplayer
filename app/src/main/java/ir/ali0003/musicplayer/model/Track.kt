@@ -21,7 +21,8 @@ data class Track(
     val isHidden: Boolean = false,
     val listeningSeconds: Long = 0L,
     val dateAddedTimestamp: Long = System.currentTimeMillis(),
-    val dateModifiedTimestamp: Long = System.currentTimeMillis()
+    val dateModifiedTimestamp: Long = System.currentTimeMillis(),
+    val lyrics: String? = null
 ) {
     fun formattedDuration(): String {
         val minutes = durationSeconds / 60

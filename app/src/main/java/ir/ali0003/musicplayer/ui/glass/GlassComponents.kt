@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.ripple
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
@@ -33,9 +34,13 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -596,4 +601,137 @@ fun GlassSlider(
         ),
         modifier = modifier.then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
     )
+}
+
+@Composable
+fun GlassFlippableArtworkCard(
+    imageUrl: String?,
+    trackId: Long = 0L,
+    theme: GlassTheme = GlassTheme.DarkGreen,
+    lyricsText: String? = null,
+    modifier: Modifier = Modifier,
+    isFlipped: Boolean = false,
+    onFlip: () -> Unit = {},
+    gradientIndex: Int = 0,
+    isPlaying: Boolean = false,
+    shape: Shape = RoundedCornerShape(20.dp)
+) {
+    val animatedRotation by animateFloatAsState(
+        targetValue = if (isFlipped) 180f else 0f,
+        animationSpec = tween(500),
+        label = "cardFlipRotation"
+    )
+
+    var isLoading by remember(trackId, isFlipped) {
+        mutableStateOf(isFlipped && lyricsText.isNullOrBlank())
+    }
+
+    LaunchedEffect(trackId, isFlipped, lyricsText) {
+        if (isFlipped && lyricsText.isNullOrBlank()) {
+            isLoading = true
+            kotlinx.coroutines.delay(1200)
+            isLoading = false
+        } else {
+            isLoading = false
+        }
+    }
+
+    val density = LocalDensity.current.density
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                this.rotationY = animatedRotation
+                cameraDistance = 12f * density
+            }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onFlip
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        val isPassedHalfway = animatedRotation > 90f
+        if (!isPassedHalfway) {
+            GlassArtworkCard(
+                gradientIndex = gradientIndex,
+                isPlaying = isPlaying,
+                imageUrl = imageUrl,
+                trackId = trackId,
+                theme = theme,
+                shape = shape,
+                targetSize = 0,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .aspectRatio(1f)
+                    .clip(shape)
+                    .background(theme.glassFill.copy(alpha = 0.95f))
+                    .border(
+                        width = 1.5.dp,
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.5f),
+                                theme.glassBorder,
+                                Color.White.copy(alpha = 0.2f)
+                            )
+                        ),
+                        shape = shape
+                    )
+                    .padding(20.dp)
+                    .graphicsLayer {
+                        this.rotationY = 180f
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                val currentLyrics = remember(lyricsText) { lyricsText }
+                val textToDisplay = remember(currentLyrics, isLoading) {
+                    when {
+                        !currentLyrics.isNullOrBlank() -> currentLyrics
+                        isLoading -> "Loading lyrics..."
+                        else -> "No Lyrics Embedded in File\nTap to flip back"
+                    }
+                }
+
+                if (isLoading) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = theme.textColor,
+                            modifier = Modifier.size(28.dp),
+                            strokeWidth = 2.5.dp
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = textToDisplay,
+                            color = theme.textColor,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = textToDisplay,
+                            color = theme.textColor,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 22.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

@@ -33,6 +33,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import ir.ali0003.musicplayer.R
 import ir.ali0003.musicplayer.model.GlassTheme
 import ir.ali0003.musicplayer.model.Track
 import ir.ali0003.musicplayer.player.RepeatMode
@@ -62,9 +64,21 @@ fun NowPlayingSheet(
     onEditTrack: (Track) -> Unit = {},
     onHideTrack: (Long) -> Unit = {},
     onDeleteTrack: (Long) -> Unit = {},
+    onLoadLyrics: (Track) -> Unit = {},
     onCollapse: () -> Unit
 ) {
     if (track == null) return
+
+    var isCardFlipped by remember { mutableStateOf(false) }
+    LaunchedEffect(track.id) {
+        isCardFlipped = false
+    }
+
+    LaunchedEffect(track.id, isCardFlipped) {
+        if (isCardFlipped && track.lyrics.isNullOrBlank()) {
+            onLoadLyrics(track)
+        }
+    }
 
     var showOptionsMenu by remember { mutableStateOf(false) }
 
@@ -269,15 +283,23 @@ fun NowPlayingSheet(
                     .aspectRatio(1f),
                 contentAlignment = Alignment.Center
             ) {
-                GlassArtworkCard(
+                GlassFlippableArtworkCard(
+                    imageUrl = track.albumArtUri,
+                    trackId = track.id,
+                    theme = theme,
+                    lyricsText = track.lyrics,
+                    modifier = Modifier.fillMaxSize(),
+                    isFlipped = isCardFlipped,
+                    onFlip = {
+                        val nextFlipped = !isCardFlipped
+                        isCardFlipped = nextFlipped
+                        if (nextFlipped && track.lyrics.isNullOrBlank()) {
+                            onLoadLyrics(track)
+                        }
+                    },
                     gradientIndex = track.coverGradientIndex,
                     isPlaying = isPlaying,
-                    imageUrl = track.albumArtUri,
-                    theme = theme,
-                    titleText = "",
-                    subtitleText = "",
-                    targetSize = 0,
-                    modifier = Modifier.fillMaxSize()
+                    shape = RoundedCornerShape(20.dp)
                 )
             }
 
@@ -427,7 +449,7 @@ fun NowPlayingSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Primary Player Controls (Playback Mode, Previous [Left], Play/Pause, Next [Right], Favorite)
+            // Primary Player Controls (Playback Mode, Previous, Play/Pause, Next, Favorite)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -451,47 +473,75 @@ fun NowPlayingSheet(
                 )
 
                 // Previous Button
-                GlassIconButton(
-                    icon = Icons.Default.SkipPrevious,
-                    contentDescription = "Previous Track",
-                    onClick = onPrevious,
-                    theme = theme,
-                    size = 52.dp,
-                    testTag = "now_playing_previous_button"
-                )
-
-                // Play / Pause (Large Center Glow Button)
+                val prevInteraction = remember { MutableInteractionSource() }
                 Box(
                     modifier = Modifier
+                        .offset(y = (-28).dp)
                         .size(72.dp)
                         .clip(CircleShape)
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(theme.accentColor, theme.glowColor)
-                            )
+                        .clickable(
+                            interactionSource = prevInteraction,
+                            indication = ripple(color = theme.accentColor, bounded = false),
+                            onClick = onPrevious
                         )
-                        .border(2.dp, Color.White, CircleShape)
-                        .clickable(onClick = onTogglePlayPause)
+                        .testTag("now_playing_previous_button"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.icons8_skip_to_start_48),
+                        contentDescription = "Previous Track",
+                        tint = theme.textColor,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+
+                // Play / Pause Button (Clean Equal-Sized Control without Ring)
+                val playInteraction = remember { MutableInteractionSource() }
+                Box(
+                    modifier = Modifier
+                        .offset(y = (-28).dp)
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .clickable(
+                            interactionSource = playInteraction,
+                            indication = ripple(color = theme.accentColor, bounded = false),
+                            onClick = onTogglePlayPause
+                        )
                         .testTag("now_playing_play_pause_button"),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        painter = painterResource(
+                            id = if (isPlaying) R.drawable.icons8_pause_48 else R.drawable.icons8_play_48
+                        ),
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = Color.Black,
-                        modifier = Modifier.size(36.dp)
+                        tint = theme.textColor,
+                        modifier = Modifier.size(48.dp)
                     )
                 }
 
                 // Next Button
-                GlassIconButton(
-                    icon = Icons.Default.SkipNext,
-                    contentDescription = "Next Track",
-                    onClick = onNext,
-                    theme = theme,
-                    size = 52.dp,
-                    testTag = "now_playing_next_button"
-                )
+                val nextInteraction = remember { MutableInteractionSource() }
+                Box(
+                    modifier = Modifier
+                        .offset(y = (-28).dp)
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .clickable(
+                            interactionSource = nextInteraction,
+                            indication = ripple(color = theme.accentColor, bounded = false),
+                            onClick = onNext
+                        )
+                        .testTag("now_playing_next_button"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.icons8_next_48),
+                        contentDescription = "Next Track",
+                        tint = theme.textColor,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
 
                 // Favorite Button
                 GlassIconButton(

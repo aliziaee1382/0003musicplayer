@@ -169,7 +169,8 @@ class LocalAudioScanner(private val context: Context) {
                             isLocal = true,
                             folderName = folderName,
                             dateAddedTimestamp = dateAddedMs,
-                            dateModifiedTimestamp = dateModifiedMs
+                            dateModifiedTimestamp = dateModifiedMs,
+                            lyrics = null
                         )
                     )
                     index++
@@ -311,6 +312,180 @@ class LocalAudioScanner(private val context: Context) {
                 } catch (e: Exception) {}
             }
             return null
+        }
+
+        fun resolvePhysicalPath(context: Context, uriString: String): String? {
+            if (!uriString.startsWith("content://")) return uriString
+            return try {
+                val uri = Uri.parse(uriString)
+                val projection = arrayOf(MediaStore.Audio.Media.DATA)
+                context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val columnIndex = cursor.getColumnIndex(MediaStore.Audio.Media.DATA)
+                        if (columnIndex != -1) cursor.getString(columnIndex) else null
+                    } else null
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        fun extractEmbeddedLyrics(context: Context, filePath: String, contentUri: String): String? {
+            // 1. Try standard MediaMetadataRetriever first
+            val retriever = MediaMetadataRetriever()
+            try {
+                if (contentUri.isNotBlank()) {
+                    retriever.setDataSource(context, Uri.parse(contentUri))
+                } else if (filePath.isNotBlank()) {
+                    retriever.setDataSource(filePath)
+                }
+                val lyrics = retriever.extractMetadata(1000)
+                if (!lyrics.isNullOrBlank()) return lyrics.trim()
+            } catch (e: Exception) {
+                // ignore & fallback to direct ID3 byte stream parsing
+            } finally {
+                try { retriever.release() } catch (e: Exception) {}
+            }
+
+            // 2. Fallback: Direct ID3v2 USLT / ULT Frame Byte Parser
+            return try {
+                val candidatePath = when {
+                    filePath.isNotBlank() -> filePath
+                    contentUri.isNotBlank() -> contentUri
+                    else -> return null
+                }
+
+                val resolvedPath = resolvePhysicalPath(context, candidatePath)
+                if (!resolvedPath.isNullOrBlank()) {
+                    val file = java.io.File(resolvedPath)
+                    if (file.exists() && file.length() > 0) {
+                        val lyricsFromFile = parseId3LyricsFromFile(file)
+                        if (!lyricsFromFile.isNullOrBlank()) return lyricsFromFile
+                    }
+                }
+
+                val targetUriString = if (contentUri.startsWith("content://")) contentUri else candidatePath
+                if (targetUriString.startsWith("content://")) {
+                    val uri = Uri.parse(targetUriString)
+                    context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                        parseId3LyricsFromStream(inputStream)
+                    }
+                } else null
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        private fun parseId3LyricsFromFile(file: java.io.File): String? {
+            return try {
+                java.io.RandomAccessFile(file, "r").use { raf ->
+                    val header = ByteArray(10)
+                    if (raf.read(header) < 10) return null
+                    // Check ID3 header magic "ID3"
+                    if (header[0] != 'I'.code.toByte() || header[1] != 'D'.code.toByte() || header[2] != '3'.code.toByte()) return null
+
+                    val tagSize = ((header[6].toInt() and 0x7F) shl 21) or
+                                  ((header[7].toInt() and 0x7F) shl 14) or
+                                  ((header[8].toInt() and 0x7F) shl 7) or
+                                  (header[9].toInt() and 0x7F)
+
+                    if (tagSize <= 0) return null
+                    val tagData = ByteArray(tagSize.coerceAtMost(1024 * 1024)) // limit to 1MB
+                    raf.readFully(tagData)
+
+                    // Search for "USLT" or "ULT" frame tags inside byte buffer
+                    var pos = 0
+                    while (pos < tagData.size - 10) {
+                        val frameId = String(tagData, pos, 4, Charsets.US_ASCII)
+                        if (frameId == "USLT" || frameId == "ULT ") {
+                            val frameSize = ((tagData[pos + 4].toInt() and 0xFF) shl 24) or
+                                            ((tagData[pos + 5].toInt() and 0xFF) shl 16) or
+                                            ((tagData[pos + 6].toInt() and 0xFF) shl 8) or
+                                            (tagData[pos + 7].toInt() and 0xFF)
+                            if (frameSize > 0 && pos + 10 + frameSize <= tagData.size) {
+                                val frameContent = tagData.copyOfRange(pos + 10, pos + 10 + frameSize)
+                                // Encoding byte at index 0, Language 3 bytes (1..3)
+                                val textBytes = if (frameContent.size > 4) frameContent.copyOfRange(4, frameContent.size) else frameContent
+                                val rawText = String(textBytes, Charsets.UTF_8)
+                                val cleaned = cleanExtractedLyrics(rawText)
+                                if (cleaned != null) return cleaned
+                            }
+                        }
+                        pos++
+                    }
+                    null
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        private fun parseId3LyricsFromStream(stream: java.io.InputStream): String? {
+            return try {
+                val header = ByteArray(10)
+                var bytesRead = 0
+                while (bytesRead < 10) {
+                    val count = stream.read(header, bytesRead, 10 - bytesRead)
+                    if (count < 0) return null
+                    bytesRead += count
+                }
+                if (header[0] != 'I'.code.toByte() || header[1] != 'D'.code.toByte() || header[2] != '3'.code.toByte()) return null
+
+                val tagSize = ((header[6].toInt() and 0x7F) shl 21) or
+                              ((header[7].toInt() and 0x7F) shl 14) or
+                              ((header[8].toInt() and 0x7F) shl 7) or
+                              (header[9].toInt() and 0x7F)
+
+                if (tagSize <= 0) return null
+                val targetSize = tagSize.coerceAtMost(1024 * 1024)
+                val tagData = ByteArray(targetSize)
+                var dataRead = 0
+                while (dataRead < targetSize) {
+                    val count = stream.read(tagData, dataRead, targetSize - dataRead)
+                    if (count < 0) break
+                    dataRead += count
+                }
+
+                var pos = 0
+                while (pos < dataRead - 10) {
+                    val frameId = String(tagData, pos, 4, Charsets.US_ASCII)
+                    if (frameId == "USLT" || frameId == "ULT ") {
+                        val frameSize = ((tagData[pos + 4].toInt() and 0xFF) shl 24) or
+                                        ((tagData[pos + 5].toInt() and 0xFF) shl 16) or
+                                        ((tagData[pos + 6].toInt() and 0xFF) shl 8) or
+                                        (tagData[pos + 7].toInt() and 0xFF)
+                        if (frameSize > 0 && pos + 10 + frameSize <= dataRead) {
+                            val frameContent = tagData.copyOfRange(pos + 10, pos + 10 + frameSize)
+                            val textBytes = if (frameContent.size > 4) frameContent.copyOfRange(4, frameContent.size) else frameContent
+                            val rawText = String(textBytes, Charsets.UTF_8)
+                            val cleaned = cleanExtractedLyrics(rawText)
+                            if (cleaned != null) return cleaned
+                        }
+                    }
+                    pos++
+                }
+                null
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        private fun cleanExtractedLyrics(rawText: String): String? {
+            var text = rawText
+            if (text.contains("APIC")) {
+                text = text.substringBefore("APIC")
+            }
+            if (text.contains("image/jpeg")) {
+                text = text.substringBefore("image/jpeg")
+            }
+            if (text.contains("image/png")) {
+                text = text.substringBefore("image/png")
+            }
+            val finalText = text
+                .replace("\u0000", "")
+                .replace(Regex("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]"), "")
+                .trim()
+            return if (finalText.isNotBlank()) finalText else null
         }
     }
 }
