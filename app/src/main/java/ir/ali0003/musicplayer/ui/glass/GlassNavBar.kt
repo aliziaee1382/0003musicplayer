@@ -171,7 +171,6 @@ fun GlassBottomNavBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .shadow(10.dp, RoundedCornerShape(26.dp))
             .clip(RoundedCornerShape(26.dp))

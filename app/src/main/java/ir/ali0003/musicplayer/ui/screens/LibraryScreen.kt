@@ -24,10 +24,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +50,7 @@ fun LibraryScreen(
     activeSortTab: String,
     theme: GlassTheme,
     listItemSize: ListItemSize = ListItemSize.SMALL,
+    currentTrack: Track? = null,
     onSortTabChange: (String) -> Unit,
     onOpenCreatePlaylist: () -> Unit,
     onOpenThemeSelector: () -> Unit,
@@ -57,6 +60,7 @@ fun LibraryScreen(
     onSelectPlaylist: ((Playlist) -> Unit)? = null,
     onEditPlaylist: ((Playlist) -> Unit)? = null,
     onDeletePlaylist: ((Long) -> Unit)? = null,
+    isNowPlayingExpanded: Boolean = false,
     scrollToTopTrigger: Int = 0
 ) {
     val tabs = listOf("Playlists", "Songs", "Albums", "Artists", "Folders")
@@ -150,6 +154,9 @@ fun LibraryScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        val isMiniPlayerVisible = currentTrack != null && !isNowPlayingExpanded
+        val bottomOffset = if (isMiniPlayerVisible) 130.dp else 65.dp
+
         // Tab Content
         Box(
             modifier = Modifier
@@ -164,6 +171,7 @@ fun LibraryScreen(
                     onEditPlaylist = onEditPlaylist,
                     onDeletePlaylist = onDeletePlaylist,
                     theme = theme,
+                    bottomOffset = bottomOffset,
                     scrollToTopTrigger = scrollToTopTrigger
                 )
                 "Songs" -> SongsTabContent(
@@ -173,23 +181,27 @@ fun LibraryScreen(
                     onOpenAddToPlaylist = onOpenAddToPlaylist,
                     theme = theme,
                     listItemSize = listItemSize,
+                    bottomOffset = bottomOffset,
                     scrollToTopTrigger = scrollToTopTrigger
                 )
                 "Albums" -> AlbumsTabContent(
                     tracks = tracks,
                     onPlayTrack = onPlayTrack,
                     theme = theme,
+                    bottomOffset = bottomOffset,
                     scrollToTopTrigger = scrollToTopTrigger
                 )
                 "Artists" -> ArtistsTabContent(
                     tracks = tracks,
                     onPlayTrack = onPlayTrack,
                     theme = theme,
+                    bottomOffset = bottomOffset,
                     scrollToTopTrigger = scrollToTopTrigger
                 )
                 "Folders" -> FoldersTabContent(
                     folders = folders,
                     theme = theme,
+                    bottomOffset = bottomOffset,
                     scrollToTopTrigger = scrollToTopTrigger
                 )
             }
@@ -205,6 +217,7 @@ private fun PlaylistsTabContent(
     onEditPlaylist: ((Playlist) -> Unit)? = null,
     onDeletePlaylist: ((Long) -> Unit)? = null,
     theme: GlassTheme,
+    bottomOffset: Dp = 130.dp,
     scrollToTopTrigger: Int = 0
 ) {
     val listState = rememberLazyListState()
@@ -216,8 +229,11 @@ private fun PlaylistsTabContent(
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = bottomOffset)
+            .clipToBounds(),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Essential "Create New Playlist" card
@@ -379,6 +395,7 @@ private fun SongsTabContent(
     onOpenAddToPlaylist: ((Track) -> Unit)? = null,
     theme: GlassTheme,
     listItemSize: ListItemSize = ListItemSize.SMALL,
+    bottomOffset: Dp = 130.dp,
     scrollToTopTrigger: Int = 0
 ) {
     val listState = rememberLazyListState()
@@ -390,8 +407,11 @@ private fun SongsTabContent(
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 180.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = bottomOffset)
+            .clipToBounds(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp)
     ) {
         itemsIndexed(
             items = tracks,
@@ -438,6 +458,7 @@ private fun AlbumsTabContent(
     tracks: List<Track>,
     onPlayTrack: (Track, List<Track>?) -> Unit,
     theme: GlassTheme,
+    bottomOffset: Dp = 130.dp,
     scrollToTopTrigger: Int = 0
 ) {
     val albums = remember(tracks) {
@@ -453,8 +474,11 @@ private fun AlbumsTabContent(
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Fixed(2),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = bottomOffset)
+            .clipToBounds(),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -506,6 +530,7 @@ private fun ArtistsTabContent(
     tracks: List<Track>,
     onPlayTrack: (Track, List<Track>?) -> Unit,
     theme: GlassTheme,
+    bottomOffset: Dp = 130.dp,
     scrollToTopTrigger: Int = 0
 ) {
     val artists = remember(tracks) {
@@ -520,8 +545,11 @@ private fun ArtistsTabContent(
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = bottomOffset)
+            .clipToBounds(),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(artists.keys.toList()) { artistName ->
@@ -591,6 +619,7 @@ private fun ArtistsTabContent(
 private fun FoldersTabContent(
     folders: List<AudioFolder>,
     theme: GlassTheme,
+    bottomOffset: Dp = 130.dp,
     scrollToTopTrigger: Int = 0
 ) {
     val listState = rememberLazyListState()
@@ -602,8 +631,11 @@ private fun FoldersTabContent(
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = bottomOffset)
+            .clipToBounds(),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(folders) { folder ->

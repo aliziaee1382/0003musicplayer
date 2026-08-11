@@ -281,8 +281,8 @@ class LocalAudioScanner(private val context: Context) {
             contentUri: String,
             trackId: Long
         ): String? {
-            val cacheDir = File(context.cacheDir, "album_covers_thumb_48")
-            val coverFile = File(cacheDir, "thumb_$trackId.webp")
+            val cacheDir = File(context.cacheDir, "album_covers")
+            val coverFile = File(cacheDir, "cover_$trackId.jpg")
             if (coverFile.exists() && coverFile.length() > 0L) {
                 return Uri.fromFile(coverFile).toString()
             }
@@ -297,32 +297,14 @@ class LocalAudioScanner(private val context: Context) {
                 }
                 val artBytes = retriever.embeddedPicture
                 if (artBytes != null && artBytes.isNotEmpty()) {
-                    val options = BitmapFactory.Options().apply {
-                        inPreferredConfig = Bitmap.Config.RGB_565
+                    if (!cacheDir.exists()) {
+                        cacheDir.mkdirs()
                     }
-                    val originalBitmap = BitmapFactory.decodeByteArray(artBytes, 0, artBytes.size, options)
-                    if (originalBitmap != null) {
-                        // Resize strictly to 48x48 pixels for ultra-lightweight thumbnails
-                        val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, 48, 48, true)
-                        if (!cacheDir.exists()) {
-                            cacheDir.mkdirs()
-                        }
-                        FileOutputStream(coverFile).use { out ->
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                scaledBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 70, out)
-                            } else {
-                                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 70, out)
-                            }
-                        }
-                        if (scaledBitmap != originalBitmap) {
-                            scaledBitmap.recycle()
-                        }
-                        originalBitmap.recycle()
-                        return Uri.fromFile(coverFile).toString()
-                    }
+                    coverFile.writeBytes(artBytes)
+                    return Uri.fromFile(coverFile).toString()
                 }
             } catch (e: Exception) {
-                // Ignore errors cleanly
+                // Ignore cleanly
             } finally {
                 try {
                     retriever.release()

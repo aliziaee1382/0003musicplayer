@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -38,9 +39,11 @@ fun ExploreScreen(
     tracks: List<Track>,
     theme: GlassTheme,
     listItemSize: ListItemSize = ListItemSize.SMALL,
+    currentTrack: Track? = null,
     onPlayTrack: (Track, List<Track>?) -> Unit,
     onToggleFavorite: ((Track) -> Unit)? = null,
     onOpenAddToPlaylist: ((Track) -> Unit)? = null,
+    isNowPlayingExpanded: Boolean = false,
     scrollToTopTrigger: Int = 0
 ) {
     // Dynamic Listening Statistics calculation based on real listening time in DB
@@ -92,6 +95,9 @@ fun ExploreScreen(
         ).take(10)
     }
 
+    val isMiniPlayerVisible = currentTrack != null && !isNowPlayingExpanded
+    val bottomOffset = if (isMiniPlayerVisible) 130.dp else 65.dp
+
     val listState = rememberLazyListState()
     LaunchedEffect(scrollToTopTrigger) {
         if (scrollToTopTrigger > 0) {
@@ -103,8 +109,10 @@ fun ExploreScreen(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
+            .padding(bottom = bottomOffset)
+            .clipToBounds()
             .testTag("explore_screen_column"),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 180.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         // Title & Header

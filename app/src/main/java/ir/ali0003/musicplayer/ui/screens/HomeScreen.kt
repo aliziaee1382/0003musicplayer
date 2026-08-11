@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -64,6 +65,7 @@ fun HomeScreen(
     onOpenEqualizer: () -> Unit,
     onOpenAddToPlaylist: ((Track) -> Unit)? = null,
     onScanLocalMusic: (() -> Unit)? = null,
+    isNowPlayingExpanded: Boolean = false,
     scrollToTopTrigger: Int = 0
 ) {
     var showSortDialog by remember { mutableStateOf(false) }
@@ -137,12 +139,17 @@ fun HomeScreen(
         }
     }
 
+    val isMiniPlayerVisible = currentTrack != null && !isNowPlayingExpanded
+    val bottomOffset = if (isMiniPlayerVisible) 130.dp else 65.dp
+
     LazyColumn(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
+            .padding(bottom = bottomOffset)
+            .clipToBounds()
             .testTag("home_screen_column"),
-        contentPadding = PaddingValues(bottom = 180.dp)
+        contentPadding = PaddingValues(bottom = 16.dp)
     ) {
         // Top User Header
         item {

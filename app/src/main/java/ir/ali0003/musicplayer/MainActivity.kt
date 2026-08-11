@@ -28,6 +28,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -44,11 +47,33 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        hideSystemNavigationBar()
         openEqOnStart = intent?.getBooleanExtra("OPEN_EQUALIZER", false) == true
         setContent {
             MyApplicationTheme {
                 GlassAudioApp(openEqOnStart = openEqOnStart)
             }
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            hideSystemNavigationBar()
+        }
+    }
+
+    fun hideSystemNavigationBar() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val controller = WindowCompat.getInsetsController(window, window.decorView)
+            controller.hide(WindowInsetsCompat.Type.navigationBars())
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            )
         }
     }
 
@@ -78,6 +103,11 @@ fun GlassAudioApp(
 ) {
     val playerManager = viewModel.playerManager
     val context = LocalContext.current
+    val activity = context as? MainActivity
+
+    LaunchedEffect(Unit) {
+        activity?.hideSystemNavigationBar()
+    }
 
     LaunchedEffect(openEqOnStart) {
         if (openEqOnStart) {
@@ -181,6 +211,7 @@ fun GlassAudioApp(
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
+                    activity?.hideSystemNavigationBar()
                     val isGranted = checkAudioPermissionGranted(context)
                     hasAudioPermission = isGranted
                     if (isGranted) {
@@ -357,6 +388,7 @@ fun GlassAudioApp(
                                 onOpenEqualizer = { viewModel.setShowEqualizer(true) },
                                 onOpenAddToPlaylist = { viewModel.openAddToPlaylistForTrack(it) },
                                 onScanLocalMusic = { permissionLauncher.launch(permissionsToRequest) },
+                                isNowPlayingExpanded = isNowPlayingExpanded,
                                 scrollToTopTrigger = homeScrollToTopTrigger
                             )
 
@@ -364,6 +396,8 @@ fun GlassAudioApp(
                                 tracks = tracks,
                                 theme = currentTheme,
                                 listItemSize = listItemSize,
+                                currentTrack = currentTrack,
+                                isNowPlayingExpanded = isNowPlayingExpanded,
                                 onPlayTrack = { track, queue -> viewModel.playTrack(track, queue) },
                                 onToggleFavorite = { viewModel.toggleFavorite(it) },
                                 onOpenAddToPlaylist = { viewModel.openAddToPlaylistForTrack(it) },
@@ -378,6 +412,8 @@ fun GlassAudioApp(
                                 activeSortTab = librarySortTab,
                                 theme = currentTheme,
                                 listItemSize = listItemSize,
+                                currentTrack = currentTrack,
+                                isNowPlayingExpanded = isNowPlayingExpanded,
                                 onSortTabChange = { viewModel.setLibrarySortTab(it) },
                                 onOpenCreatePlaylist = { viewModel.setShowCreatePlaylist(true) },
                                 onOpenThemeSelector = { viewModel.setShowThemeSelector(true) },

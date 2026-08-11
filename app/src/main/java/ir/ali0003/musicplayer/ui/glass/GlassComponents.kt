@@ -493,8 +493,12 @@ fun GlassArtworkCard(
     ) {
         if (!showFallback) {
             val context = LocalContext.current
-            val cacheKey = remember(imageUrl, trackId) {
-                if (trackId > 0) "cover_$trackId" else (imageUrl ?: "")
+            val cacheKey = remember(imageUrl, trackId, targetSize) {
+                if (trackId > 0) {
+                    if (targetSize > 0) "cover_${trackId}_$targetSize" else "cover_$trackId"
+                } else {
+                    if (targetSize > 0) "${imageUrl}_$targetSize" else (imageUrl ?: "")
+                }
             }
             val imageRequest = remember(imageUrl, targetSize, cacheKey) {
                 val builder = ImageRequest.Builder(context)
