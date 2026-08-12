@@ -368,6 +368,51 @@ class AudioPlayerManager(private val context: Context) {
         }
     }
 
+    fun playNext(tracks: List<Track>) {
+        if (tracks.isEmpty()) return
+        if (playlistQueue.isEmpty() || currentIndex !in playlistQueue.indices) {
+            setQueue(tracks, 0)
+            return
+        }
+
+        val selectedIds = tracks.map { it.id }.toSet()
+        val currentTrk = playlistQueue[currentIndex]
+
+        val cleanQueue = playlistQueue.filter { it.id == currentTrk.id || it.id !in selectedIds }
+        val currentIdxInClean = cleanQueue.indexOfFirst { it.id == currentTrk.id }.coerceAtLeast(0)
+
+        val mutableQueue = cleanQueue.toMutableList()
+        mutableQueue.addAll(currentIdxInClean + 1, tracks)
+
+        playlistQueue = mutableQueue
+        currentIndex = currentIdxInClean
+
+        if (_isShuffle.value) {
+            val insertedStartIdx = currentIdxInClean + 1
+            val insertedIndices = (0 until tracks.size).map { insertedStartIdx + it }
+
+            if (shufflePointer in shuffleQueue.indices) {
+                val playedShuffle = shuffleQueue.take(shufflePointer + 1)
+                val remainingTrackIds = shuffleQueue.drop(shufflePointer + 1).mapNotNull { idx ->
+                    cleanQueue.getOrNull(idx)?.id
+                }.filter { id -> id !in selectedIds && id != currentTrk.id }
+
+                val remainingIndices = remainingTrackIds.mapNotNull { id ->
+                    playlistQueue.indexOfFirst { it.id == id }.takeIf { it != -1 }
+                }
+
+                shuffleQueue.clear()
+                shuffleQueue.addAll(playedShuffle)
+                shuffleQueue.addAll(insertedIndices)
+                shuffleQueue.addAll(remainingIndices)
+            } else {
+                generateShuffleQueue()
+            }
+        }
+
+        updateServiceNotification()
+    }
+
     private var currentTrackListeningSeconds: Long = 0L
     private var lastFlushTimeMs: Long = 0L
     var onFlushListeningTimeListener: ((trackId: Long, seconds: Long) -> Unit)? = null

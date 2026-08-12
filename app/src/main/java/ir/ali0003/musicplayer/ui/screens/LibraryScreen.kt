@@ -430,7 +430,7 @@ private fun SongsTabContent(
             }
 
             val onItemClick = remember(track.id, tracks) { { onPlayTrack(track, tracks) } }
-            val onFavoriteClick = remember(track.id) { { onToggleFavorite(track) } }
+            val onFavoriteClick = remember(track) { { onToggleFavorite(track) } }
             val onAddToPlaylistClick = remember(track.id, onOpenAddToPlaylist) {
                 if (onOpenAddToPlaylist != null) { { onOpenAddToPlaylist(track) } } else null
             }

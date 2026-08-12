@@ -1,5 +1,6 @@
 package ir.ali0003.musicplayer.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -30,8 +31,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.zIndex
 import ir.ali0003.musicplayer.model.GlassTheme
 import ir.ali0003.musicplayer.model.ListItemSize
+import ir.ali0003.musicplayer.model.Playlist
 import ir.ali0003.musicplayer.model.Track
 import ir.ali0003.musicplayer.model.TrackSortCriterion
 import ir.ali0003.musicplayer.model.TrackSortOrder
@@ -54,6 +57,7 @@ fun HomeScreen(
     onRequestPermission: () -> Unit = {},
     sortCriterion: TrackSortCriterion = TrackSortCriterion.DATE_ADDED,
     sortOrder: TrackSortOrder = TrackSortOrder.DESCENDING,
+    allPlaylists: List<Playlist> = emptyList(),
     onSelectCategory: (String) -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onSortCriterionChange: (TrackSortCriterion) -> Unit = {},
@@ -65,11 +69,39 @@ fun HomeScreen(
     onOpenEqualizer: () -> Unit,
     onOpenAddToPlaylist: ((Track) -> Unit)? = null,
     onScanLocalMusic: (() -> Unit)? = null,
+    onHideTracks: ((List<Long>) -> Unit)? = null,
+    onPlayNextTracks: ((List<Track>) -> Unit)? = null,
+    onAddTracksToPlaylist: ((Long, List<Long>) -> Unit)? = null,
+    onCreatePlaylist: ((String) -> Unit)? = null,
     isNowPlayingExpanded: Boolean = false,
     scrollToTopTrigger: Int = 0
 ) {
     var showSortDialog by remember { mutableStateOf(false) }
     var showSearchDialog by remember { mutableStateOf(false) }
+    var selectedTrackIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var showMultiAddToPlaylistDialog by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = selectedTrackIds.isNotEmpty()) {
+        selectedTrackIds = emptySet()
+    }
+
+    if (showMultiAddToPlaylistDialog) {
+        MultiAddToPlaylistDialog(
+            playlists = allPlaylists,
+            selectedCount = selectedTrackIds.size,
+            onAddToPlaylist = { playlistId ->
+                onAddTracksToPlaylist?.invoke(playlistId, selectedTrackIds.toList())
+                selectedTrackIds = emptySet()
+                showMultiAddToPlaylistDialog = false
+            },
+            onCreateNewPlaylist = {
+                showMultiAddToPlaylistDialog = false
+                onCreatePlaylist?.invoke("New Playlist")
+            },
+            onDismiss = { showMultiAddToPlaylistDialog = false },
+            theme = theme
+        )
+    }
 
     if (showSortDialog) {
         SortTracksDialog(
@@ -404,6 +436,7 @@ fun HomeScreen(
                 val isCurrent = currentTrack?.id == track.id
                 val isFirst = index == 0
                 val isLast = index == sortedTracks.lastIndex
+                val isSelected = selectedTrackIds.contains(track.id)
                 val itemShape = remember(isFirst, isLast) {
                     when {
                         isFirst && isLast -> RoundedCornerShape(16.dp)
@@ -413,8 +446,31 @@ fun HomeScreen(
                     }
                 }
 
-                val onItemClick = remember(track.id, sortedTracks) { { onPlayTrack(track, sortedTracks) } }
-                val onFavoriteClick = remember(track.id) { { onToggleFavorite(track) } }
+                val onItemClick = remember(track.id, sortedTracks, selectedTrackIds) {
+                    {
+                        if (selectedTrackIds.isNotEmpty()) {
+                            selectedTrackIds = if (selectedTrackIds.contains(track.id)) {
+                                selectedTrackIds - track.id
+                            } else {
+                                selectedTrackIds + track.id
+                            }
+                        } else {
+                            onPlayTrack(track, sortedTracks)
+                        }
+                    }
+                }
+
+                val onItemLongClick = remember(track.id, selectedTrackIds) {
+                    {
+                        selectedTrackIds = if (selectedTrackIds.contains(track.id)) {
+                            selectedTrackIds - track.id
+                        } else {
+                            selectedTrackIds + track.id
+                        }
+                    }
+                }
+
+                val onFavoriteClick = remember(track) { { onToggleFavorite(track) } }
 
                 Box(modifier = Modifier.padding(start = 16.dp, end = 30.dp)) {
                     TrackListItem(
@@ -427,6 +483,8 @@ fun HomeScreen(
                         isLastInGroup = isLast,
                         showDivider = !isLast,
                         onClick = onItemClick,
+                        onLongClick = onItemLongClick,
+                        isSelected = isSelected,
                         onToggleFavorite = onFavoriteClick,
                         onOpenAddToPlaylist = null,
                         testTag = "home_track_item_${track.id}"
@@ -436,18 +494,148 @@ fun HomeScreen(
         }
     }
 
-    if (hasAudioPermission && sortedTracks.isNotEmpty()) {
-        DotsFastScrollOverlay(
-            listState = listState,
-            sortedTracks = sortedTracks,
-            sortCriterion = sortCriterion,
-            headerCount = 3,
-            theme = theme,
-            bottomPadding = bottomOffset,
+        AnimatedVisibility(
+            visible = selectedTrackIds.isNotEmpty(),
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .fillMaxHeight()
-        )
+                .align(Alignment.TopCenter)
+                .zIndex(10f)
+        ) {
+            MultiSelectTopActionBar(
+                selectedCount = selectedTrackIds.size,
+                onClose = { selectedTrackIds = emptySet() },
+                onPlayNext = {
+                    val selectedList = sortedTracks.filter { it.id in selectedTrackIds }
+                    onPlayNextTracks?.invoke(selectedList)
+                    selectedTrackIds = emptySet()
+                },
+                onAddToPlaylist = {
+                    showMultiAddToPlaylistDialog = true
+                },
+                onHide = {
+                    onHideTracks?.invoke(selectedTrackIds.toList())
+                    selectedTrackIds = emptySet()
+                },
+                theme = theme
+            )
+        }
+
+        if (hasAudioPermission && sortedTracks.isNotEmpty()) {
+            DotsFastScrollOverlay(
+                listState = listState,
+                sortedTracks = sortedTracks,
+                sortCriterion = sortCriterion,
+                headerCount = 3,
+                theme = theme,
+                bottomPadding = bottomOffset,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .fillMaxHeight()
+            )
+        }
     }
 }
+
+@Composable
+fun MultiSelectTopActionBar(
+    selectedCount: Int,
+    onClose: () -> Unit,
+    onPlayNext: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onHide: () -> Unit,
+    theme: GlassTheme,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        color = Color.Transparent
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            theme.glassFill.copy(alpha = 0.95f),
+                            theme.glassFill.copy(alpha = 0.85f)
+                        )
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.linearGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.4f),
+                            theme.glassBorder,
+                            Color.White.copy(alpha = 0.2f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(24.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    GlassIconButton(
+                        icon = Icons.Default.Close,
+                        contentDescription = "Cancel Selection",
+                        onClick = onClose,
+                        theme = theme,
+                        size = 36.dp,
+                        testTag = "multi_select_close_button"
+                    )
+                    Text(
+                        text = "$selectedCount",
+                        color = theme.textColor,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.testTag("multi_select_count_text")
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    GlassButton(
+                        text = "Play Next",
+                        icon = Icons.Default.SkipNext,
+                        onClick = onPlayNext,
+                        theme = theme,
+                        testTag = "multi_select_play_next_button"
+                    )
+
+                    GlassIconButton(
+                        icon = Icons.Default.PlaylistAdd,
+                        contentDescription = "Add to Playlist",
+                        onClick = onAddToPlaylist,
+                        theme = theme,
+                        size = 36.dp,
+                        testTag = "multi_select_add_playlist_button"
+                    )
+
+                    GlassIconButton(
+                        icon = Icons.Default.VisibilityOff,
+                        contentDescription = "Hide Tracks",
+                        onClick = onHide,
+                        tint = Color(0xFFEF4444),
+                        theme = theme,
+                        size = 36.dp,
+                        testTag = "multi_select_hide_button"
+                    )
+                }
+            }
+        }
+    }
 }

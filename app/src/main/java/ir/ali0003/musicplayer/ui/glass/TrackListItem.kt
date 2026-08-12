@@ -1,14 +1,19 @@
 package ir.ali0003.musicplayer.ui.glass
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +34,7 @@ import ir.ali0003.musicplayer.model.GlassTheme
 import ir.ali0003.musicplayer.model.ListItemSize
 import ir.ali0003.musicplayer.model.Track
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TrackListItem(
     track: Track,
@@ -40,19 +46,34 @@ fun TrackListItem(
     isLastInGroup: Boolean = false,
     showDivider: Boolean = true,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    isSelected: Boolean = false,
     onToggleFavorite: (() -> Unit)? = null,
     onOpenAddToPlaylist: (() -> Unit)? = null,
     rankText: String? = null,
     testTag: String = "track_list_item_${track.id}"
 ) {
-    val glassBg = remember(theme) { theme.glassFill }
-    val titleColor = remember(isCurrent, theme) { if (isCurrent) theme.accentColor else theme.textColor }
+    val glassBg = remember(theme, isSelected) {
+        if (isSelected) theme.accentColor.copy(alpha = 0.18f) else theme.glassFill
+    }
+    val titleColor = remember(isCurrent, isSelected, theme) {
+        if (isSelected || isCurrent) theme.accentColor else theme.textColor
+    }
     val subtextColor = remember(theme) { theme.subtextColor }
     val dividerColor = remember(theme) { theme.textColor.copy(alpha = 0.15f) }
     val artistAlbumText = remember(track.artist, track.album) { "${track.artist} • ${track.album}" }
     val formattedDurationText = remember(track.durationSeconds) { track.formattedDuration() }
     val coverSizeDp = remember(listItemSize) { listItemSize.coverSize }
     val iconSizeDp = remember(listItemSize) { (listItemSize.coverSizeDp * 0.58f).dp.coerceAtLeast(32.dp) }
+
+    val clickModifier = if (onLongClick != null) {
+        Modifier.combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick
+        )
+    } else {
+        Modifier.clickable { onClick() }
+    }
 
     Column(
         modifier = Modifier
@@ -66,7 +87,16 @@ fun TrackListItem(
                 .fillMaxWidth()
                 .clip(itemShape)
                 .background(glassBg)
-                .clickable { onClick() }
+                .then(
+                    if (isSelected) {
+                        Modifier.border(
+                            width = 1.dp,
+                            color = theme.accentColor.copy(alpha = 0.6f),
+                            shape = itemShape
+                        )
+                    } else Modifier
+                )
+                .then(clickModifier)
                 .padding(horizontal = 12.dp, vertical = listItemSize.verticalPadding)
                 .testTag(testTag)
         ) {
@@ -84,15 +114,34 @@ fun TrackListItem(
                     )
                 }
 
-                GlassArtworkCard(
-                    gradientIndex = track.coverGradientIndex,
-                    isPlaying = isCurrent && isPlaying,
-                    imageUrl = track.albumArtUri,
-                    trackId = track.id,
-                    theme = theme,
-                    targetSize = 128,
-                    modifier = Modifier.size(coverSizeDp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    GlassArtworkCard(
+                        gradientIndex = track.coverGradientIndex,
+                        isPlaying = isCurrent && isPlaying,
+                        imageUrl = track.albumArtUri,
+                        trackId = track.id,
+                        theme = theme,
+                        targetSize = 128,
+                        modifier = Modifier.size(coverSizeDp)
+                    )
+
+                    if (isSelected) {
+                        Box(
+                            modifier = Modifier
+                                .size(coverSizeDp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(theme.accentColor.copy(alpha = 0.75f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Selected",
+                                tint = Color.White,
+                                modifier = Modifier.size(coverSizeDp * 0.55f)
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.width(12.dp))
 

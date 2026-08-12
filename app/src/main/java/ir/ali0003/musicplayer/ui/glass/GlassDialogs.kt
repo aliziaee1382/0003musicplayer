@@ -935,6 +935,112 @@ fun AddToPlaylistDialog(
 }
 
 @Composable
+fun MultiAddToPlaylistDialog(
+    playlists: List<Playlist>,
+    selectedCount: Int,
+    onAddToPlaylist: (Long) -> Unit,
+    onCreateNewPlaylist: () -> Unit,
+    onDismiss: () -> Unit,
+    theme: GlassTheme
+) {
+    AnimatedGlassDialog(onDismissRequest = onDismiss) {
+        GlassBox(
+            theme = theme,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .testTag("multi_add_to_playlist_dialog")
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Add to Playlist",
+                    color = theme.textColor,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                GlassIconButton(
+                    icon = Icons.Default.Close,
+                    contentDescription = "Close",
+                    onClick = onDismiss,
+                    theme = theme,
+                    size = 32.dp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "$selectedCount tracks selected",
+                color = theme.accentColor,
+                fontSize = 13.sp
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            GlassButton(
+                text = "New Playlist",
+                icon = Icons.Default.Add,
+                onClick = {
+                    onDismiss()
+                    onCreateNewPlaylist()
+                },
+                isHighlighted = true,
+                theme = theme,
+                modifier = Modifier.fillMaxWidth(),
+                testTag = "multi_new_playlist_button"
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                playlists.forEach { playlist ->
+                    GlassCard(
+                        onClick = {
+                            onAddToPlaylist(playlist.id)
+                            onDismiss()
+                        },
+                        theme = theme,
+                        modifier = Modifier.fillMaxWidth(),
+                        testTag = "multi_select_playlist_${playlist.id}"
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.QueueMusic,
+                                contentDescription = null,
+                                tint = theme.accentColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = playlist.name,
+                                    color = theme.textColor,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "${playlist.songCount} songs",
+                                    color = theme.subtextColor,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun PlaylistDetailsDialog(
     playlist: Playlist,
     tracks: List<Track>,

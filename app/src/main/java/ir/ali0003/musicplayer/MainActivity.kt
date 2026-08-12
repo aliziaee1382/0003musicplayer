@@ -377,6 +377,7 @@ fun GlassAudioApp(
                                 onRequestPermission = onRequestAudioPermission,
                                 sortCriterion = sortCriterion,
                                 sortOrder = sortOrder,
+                                allPlaylists = playlists,
                                 onSelectCategory = { viewModel.setSelectedCategory(it) },
                                 onSearchQueryChange = { viewModel.setSearchQuery(it) },
                                 onSortCriterionChange = { criterion -> viewModel.setSortPreference(criterion, sortOrder) },
@@ -388,6 +389,10 @@ fun GlassAudioApp(
                                 onOpenEqualizer = { viewModel.setShowEqualizer(true) },
                                 onOpenAddToPlaylist = { viewModel.openAddToPlaylistForTrack(it) },
                                 onScanLocalMusic = { permissionLauncher.launch(permissionsToRequest) },
+                                onHideTracks = { trackIds -> viewModel.hideTracks(trackIds) },
+                                onPlayNextTracks = { tracksList -> viewModel.playNext(tracksList) },
+                                onAddTracksToPlaylist = { playlistId, trackIds -> viewModel.addTracksToPlaylist(playlistId, trackIds) },
+                                onCreatePlaylist = { name -> viewModel.createPlaylist(name) },
                                 isNowPlayingExpanded = isNowPlayingExpanded,
                                 scrollToTopTrigger = homeScrollToTopTrigger
                             )

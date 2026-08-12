@@ -443,10 +443,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun playNext(tracks: List<Track>) {
+        playerManager.playNext(tracks)
+    }
+
     fun hideTrack(trackId: Long) {
         viewModelScope.launch {
             repository.hideTrack(trackId)
             playerManager.removeTrackFromQueue(trackId)
+        }
+    }
+
+    fun hideTracks(trackIds: List<Long>) {
+        viewModelScope.launch {
+            trackIds.forEach { id ->
+                repository.hideTrack(id)
+                playerManager.removeTrackFromQueue(id)
+            }
         }
     }
 
@@ -587,6 +600,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun addTrackToPlaylist(playlistId: Long, trackId: Long) {
         viewModelScope.launch {
             repository.addTrackToPlaylist(playlistId, trackId)
+        }
+    }
+
+    fun addTracksToPlaylist(playlistId: Long, trackIds: List<Long>) {
+        viewModelScope.launch {
+            trackIds.forEach { id ->
+                repository.addTrackToPlaylist(playlistId, id)
+            }
         }
     }
 

@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -149,6 +150,12 @@ fun DotsFastScrollOverlay(
     var isDragging by remember { mutableStateOf(false) }
     var touchYPx by remember { mutableFloatStateOf(0f) }
     var trackHeightPx by remember { mutableFloatStateOf(1f) }
+
+    val thumbScale by animateFloatAsState(
+        targetValue = if (isDragging) 1.2f else 1.0f,
+        animationSpec = tween(durationMillis = 150),
+        label = "thumb_scale"
+    )
 
     val firstVisibleItemIndex = listState.firstVisibleItemIndex
 
@@ -309,6 +316,10 @@ fun DotsFastScrollOverlay(
                     .align(Alignment.TopEnd)
                     .offset(y = clampedThumbY)
                     .padding(end = 4.dp)
+                    .graphicsLayer {
+                        scaleX = thumbScale
+                        scaleY = thumbScale
+                    }
                     .size(width = 8.dp, height = 38.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(
