@@ -142,15 +142,16 @@ fun HomeScreen(
     val isMiniPlayerVisible = currentTrack != null && !isNowPlayingExpanded
     val bottomOffset = if (isMiniPlayerVisible) 130.dp else 65.dp
 
-    LazyColumn(
-        state = listState,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = bottomOffset)
-            .clipToBounds()
-            .testTag("home_screen_column"),
-        contentPadding = PaddingValues(bottom = 16.dp)
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = bottomOffset)
+                .clipToBounds()
+                .testTag("home_screen_column"),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
         // Top User Header
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -414,11 +415,8 @@ fun HomeScreen(
 
                 val onItemClick = remember(track.id, sortedTracks) { { onPlayTrack(track, sortedTracks) } }
                 val onFavoriteClick = remember(track.id) { { onToggleFavorite(track) } }
-                val onAddToPlaylistClick = remember(track.id, onOpenAddToPlaylist) {
-                    if (onOpenAddToPlaylist != null) { { onOpenAddToPlaylist(track) } } else null
-                }
 
-                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Box(modifier = Modifier.padding(start = 16.dp, end = 30.dp)) {
                     TrackListItem(
                         track = track,
                         isCurrent = isCurrent,
@@ -430,11 +428,26 @@ fun HomeScreen(
                         showDivider = !isLast,
                         onClick = onItemClick,
                         onToggleFavorite = onFavoriteClick,
-                        onOpenAddToPlaylist = onAddToPlaylistClick,
+                        onOpenAddToPlaylist = null,
                         testTag = "home_track_item_${track.id}"
                     )
                 }
             }
         }
     }
+
+    if (hasAudioPermission && sortedTracks.isNotEmpty()) {
+        DotsFastScrollOverlay(
+            listState = listState,
+            sortedTracks = sortedTracks,
+            sortCriterion = sortCriterion,
+            headerCount = 3,
+            theme = theme,
+            bottomPadding = bottomOffset,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .fillMaxHeight()
+        )
+    }
+}
 }

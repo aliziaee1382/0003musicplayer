@@ -476,7 +476,7 @@ fun NowPlayingSheet(
                 val prevInteraction = remember { MutableInteractionSource() }
                 Box(
                     modifier = Modifier
-                        .offset(y = (-28).dp)
+                        .offset(y = (-40).dp)
                         .size(72.dp)
                         .clip(CircleShape)
                         .clickable(
@@ -499,7 +499,7 @@ fun NowPlayingSheet(
                 val playInteraction = remember { MutableInteractionSource() }
                 Box(
                     modifier = Modifier
-                        .offset(y = (-28).dp)
+                        .offset(y = (-40).dp)
                         .size(72.dp)
                         .clip(CircleShape)
                         .clickable(
@@ -524,7 +524,7 @@ fun NowPlayingSheet(
                 val nextInteraction = remember { MutableInteractionSource() }
                 Box(
                     modifier = Modifier
-                        .offset(y = (-28).dp)
+                        .offset(y = (-40).dp)
                         .size(72.dp)
                         .clip(CircleShape)
                         .clickable(
