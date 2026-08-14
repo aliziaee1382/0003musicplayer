@@ -337,7 +337,7 @@ fun GlassAudioApp(
                     AnimatedContent(
                         targetState = activeNavTab,
                         transitionSpec = {
-                            val tabOrder = listOf("Home", "Explore", "Library", "Settings")
+                            val tabOrder = listOf("Home", "Explore", "Library", "Downloader", "Settings")
                             val initialIndex = tabOrder.indexOf(initialState).coerceAtLeast(0)
                             val targetIndex = tabOrder.indexOf(targetState).coerceAtLeast(0)
 
@@ -435,6 +435,10 @@ fun GlassAudioApp(
                                 },
                                 onDeletePlaylist = { playlistId -> viewModel.deletePlaylist(playlistId) },
                                 scrollToTopTrigger = libraryScrollToTopTrigger
+                            )
+
+                             "Downloader" -> DownloaderScreen(
+                                theme = currentTheme
                             )
 
                             "Settings" -> SettingsScreen(

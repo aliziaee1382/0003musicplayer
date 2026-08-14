@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -158,14 +159,21 @@ fun GlassBottomNavBar(
     theme: GlassTheme,
     modifier: Modifier = Modifier
 ) {
-    val items = listOf(
-        NavItem("Home", "Home", Icons.Default.Home),
-        NavItem("Explore", "Explore", Icons.Default.Explore),
-        NavItem("Library", "Library", Icons.Default.QueueMusic),
-        NavItem("Settings", "Settings", Icons.Default.Settings)
-    )
+    val items = remember {
+        listOf(
+            NavItem("Home", "Home", Icons.Default.Home),
+            NavItem("Explore", "Explore", Icons.Default.Explore),
+            NavItem("Library", "Library", Icons.Default.QueueMusic),
+            NavItem("Downloader", "Downloader", Icons.Default.Download),
+            NavItem("Settings", "Settings", Icons.Default.Settings)
+        )
+    }
     val solidBg = remember(theme) {
         if (theme.isLight) Color(0xFFF8FAFC) else theme.glassFill.copy(alpha = 1.0f)
+    }
+
+    val selectedIndex = remember(activeTab, items) {
+        items.indexOfFirst { it.id == activeTab }.coerceAtLeast(0)
     }
 
     Box(
@@ -185,81 +193,90 @@ fun GlassBottomNavBar(
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = {}
             )
-            .padding(vertical = 8.dp, horizontal = 12.dp)
+            .padding(vertical = 6.dp, horizontal = 8.dp)
             .testTag("glass_bottom_nav_bar")
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEach { item ->
-                val isSelected = activeTab == item.id
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val tabWidth = maxWidth / items.size
 
-                val scale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.90f else 1f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                    label = "tabScale"
-                )
+            val indicatorOffset by animateDpAsState(
+                targetValue = tabWidth * selectedIndex,
+                animationSpec = spring(
+                    stiffness = Spring.StiffnessLow,
+                    dampingRatio = Spring.DampingRatioLowBouncy
+                ),
+                label = "indicatorOffset"
+            )
 
-                val animatedBgColor by animateColorAsState(
-                    targetValue = if (isSelected) theme.accentColor.copy(alpha = 0.28f) else Color.Transparent,
-                    animationSpec = tween(280),
-                    label = "tabBgColor"
-                )
-
-                val animatedIconTint by animateColorAsState(
-                    targetValue = if (isSelected) theme.accentColor else theme.subtextColor,
-                    animationSpec = tween(280),
-                    label = "tabIconTint"
-                )
-
+            // Active Tab Indicator Circle
+            Box(
+                modifier = Modifier
+                    .offset(x = indicatorOffset)
+                    .width(tabWidth)
+                    .height(48.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 Box(
                     modifier = Modifier
-                        .height(48.dp)
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        }
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(animatedBgColor)
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = ripple(color = theme.accentColor),
-                            onClick = { onTabSelected(item.id) }
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(theme.glassFill)
+                        .border(
+                            width = 1.dp,
+                            color = theme.glassBorder,
+                            shape = CircleShape
                         )
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .testTag("nav_tab_${item.id.lowercase()}"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                )
+            }
+
+            // 5 Icon-Only Tabs
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items.forEach { item ->
+                    val isSelected = activeTab == item.id
+                    val interactionSource = remember { MutableInteractionSource() }
+                    val isPressed by interactionSource.collectIsPressedAsState()
+
+                    val scale by animateFloatAsState(
+                        targetValue = if (isPressed) 0.88f else if (isSelected) 1.08f else 1.0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        label = "tabScale"
+                    )
+
+                    val animatedIconTint by animateColorAsState(
+                        targetValue = if (isSelected) theme.accentColor else theme.subtextColor,
+                        animationSpec = tween(280),
+                        label = "tabIconTint"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .width(tabWidth)
+                            .height(48.dp)
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            }
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = ripple(bounded = false, color = theme.accentColor, radius = 24.dp),
+                                onClick = { onTabSelected(item.id) }
+                            )
+                            .testTag("nav_tab_${item.id.lowercase()}"),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = item.icon,
                             contentDescription = item.title,
                             tint = animatedIconTint,
-                            modifier = Modifier.size(28.8.dp)
+                            modifier = Modifier.size(26.dp)
                         )
-                        AnimatedVisibility(
-                            visible = isSelected,
-                            enter = expandHorizontally(animationSpec = spring(stiffness = Spring.StiffnessLow)) + fadeIn(animationSpec = tween(220)),
-                            exit = shrinkHorizontally(animationSpec = tween(180)) + fadeOut(animationSpec = tween(150))
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = item.title,
-                                    color = theme.textColor,
-                                    fontSize = 14.4.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1
-                                )
-                            }
-                        }
                     }
                 }
             }
